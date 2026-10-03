@@ -63,3 +63,69 @@ def logout_view(request):
         },status=status.HTTP_205_RESET_CONTENT)
     except Exception:
         return Response({"detail":"Invalid or reset token"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me_view(request):
+    return Response(UserSerilizer(request.user).data)
+
+@api_view(['POST'])
+@permission_classes({AllowAny})
+def password_reset_request_view(request):
+    email=request.data.get("email")
+    if not email:
+        return Response({
+            "detail":"Email is required"
+        })
+    return Response({
+        "detail":"If that email exists, a reset link has been sent."
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_reset_request_view(request):
+    new_password=request.data.get("new_password")
+    try:
+        validate_password(new_password)
+    except DjangoValidationError as e:
+        return Response({"password":e.message},status=status.HTTP_400_BAD_REQUEST)
+    return Response({"detail":"Password has been reset"})
+
+
+
+#----------------------------- JobSeeker Profile ----------------------------------------
+
+@api_view(['GET','PUT','PATCH'])
+@permission_classes([IsAuthenticated,isJobSeeker])
+def jobseeker_profile_view(request):
+    profile=get_object_or_404(JobSeekerProfile,user=request.user)
+
+    if request.method=='GET':
+        return Response(JobSeekerProfileSerializer(profile).data)
+    partial=request.method=='PATCH'
+    serilizer=JobSeekerProfileSerializer(profile,data=request.data,partial=partial)
+    serilizer.is_valid(raise_exception=True)
+    serilizer.save()
+    return Response(serilizer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated,isJobSeeker])
+@parser_classes([MultiPartParser,FormParser])
+def jobseeker_resume_upload_view(request):
+    profile=get_object_or_404(JobSeekerProfile,user=request.user)
+    resume_file=request.Files.get('resume')
+    if not resume_file:
+        return Response({
+            "detail":"No Resume file provided"
+        },status=status.HTTP_400_BAD_REQUEST)
+    profile.resume=resume_file
+    profile.save()
+    return Response(JobSeekerProfileSerializer(profile).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def public_jobseeker_profile_view(request,id):
+    profile=get_object_or_404(JobSeekerProfile,id=id)
+    return Response(JobSeekerProfileSerializer(profile).data)    

@@ -67,4 +67,3 @@ class JobSeekerProfileSerializer(serializers.ModelSerializer):
             'expected_ctc', 'linkedin_url', 'github_url', 
             'portfolio_url', 'is_open_to_work', 'skills', 'education', 'experience'
         )
-            
