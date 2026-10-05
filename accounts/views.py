@@ -129,3 +129,40 @@ def jobseeker_resume_upload_view(request):
 def public_jobseeker_profile_view(request,id):
     profile=get_object_or_404(JobSeekerProfile,id=id)
     return Response(JobSeekerProfileSerializer(profile).data)    
+
+
+#----------------------------Education------------------------------------------
+
+@api_view(['GET','POST'])
+@permission_classes([IsAuthenticated,isJobSeeker])
+def education_list_create_view(request):
+    profile=get_object_or_404(JobSeekerProfile,user=request.user)
+
+    if request.method=='GET':
+        education=Education.objects.filter(jobseeker=profile)
+        return Response(EducationSerializer(education,many=True).data)
+    serializer=EducationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save(jobseeker=profile)
+    return Response(serializer.data,status=status.HTTP_201_CREATED)
+
+
+
+@api_view(['GET','PUT','PATCH','DELETE'])
+@permission_classes([IsAuthenticated,isJobSeeker])
+def education_detail_view(request,pk):
+    education = get_object_or_404(Education, pk=pk, jobseeker__user = request.user)
+    if request.method=='GET':
+        return Response(EducationSerializer(education).data)
+
+    if request.method=='DELETE':
+        education.delete()
+        return Response({
+            "message": "Education Deleted"
+        }, status = status.HTTP_204_NO_CONTENT)
+
+    partial=request.method=='PATCH'
+    serializer = EducationSerializer(education, data = request.data, partial=partial)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data)
