@@ -84,7 +84,7 @@ def password_reset_request_view(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def password_reset_request_view(request):
+def password_reset_confirm_view(request):
     new_password=request.data.get("new_password")
     try:
         validate_password(new_password)
@@ -199,3 +199,31 @@ def experience_detail_view(request,pk):
     serilizer=ExperienceSerializer(experience,data=request.data,partial=partial)
     serilizer.is_valid(raise_exception=True)
     serilizer.save(serilizer.data,status=status.HTTP_200_OK)
+
+#--------------------------------------------Skills-------------------------------------------------
+
+@api_view(['GET','POST'])
+@permission_classes([IsAuthenticated,isJobSeeker])
+def skill_list_create_view(request):
+    profile=get_object_or_404(JobSeekerProfile,user=request.user)
+
+    if request.method=='GET':
+        skills=JobSeekerProfile.objects.filter(jobseeker=profile)
+        return Response(JobSeekerSkillSerializer(skills,many=True).data)
+    serializer=JobSeekerSkillSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save(jobseeker=profile)
+    return Response(serializer.data,status=status.HTTP_201_CREATED)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated,isJobSeeker])
+def skill_delete_view(request,pk):
+    skill=get_object_or_404(JobSeekerSkill,pk=pk,jobseeke_user=request.user)
+    skill.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def all_skills_list_view(request):
+    skills=Skill.objects.all()
+    return Response(SkillSerializer(skills,many=True).data)
