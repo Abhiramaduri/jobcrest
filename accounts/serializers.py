@@ -7,13 +7,13 @@ class RegisterSerializer(serializers.ModelSerializer):
     password2=serializers.CharField(write_only=True)
 
     class Meta:
-        model:User
+        model=User
         fields=('username','email','password','password2','user_type','phone_number')
 
     def validate(self,attrs):
         if attrs['password'] != attrs['password2'] :
             raise serializers.ValidationError
-            return attrs
+        return attrs
     def create(self, validated_data):
         self.validated_data.pop('password2')
         user =  User.objects.create_user(
