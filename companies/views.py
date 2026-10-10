@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 
 from .models import Company, EmployerProfile
 from .serializers import CompanySerializer, CompanyListSerializer, EmployerProfileSerializer
-from accounts.permissions import IsEmployer, IsCompanyOwnerOrReadOnly
+from accounts.permissions import IsEmployer
 
 
 @api_view(['GET','POST'])
