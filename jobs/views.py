@@ -31,3 +31,39 @@ def job_skills_list_view(request):
     skills=SkillSerializer.all()
     return Response(SkillSerializer(skills,many=True).data)
 
+#--------------------------------------- Job List / Create -------------------------------------------------------------
+
+@api_view('GET','POST')
+@permission_classes([AllowAny])
+def job_list_create_view(request):
+    if request.method=='GET':
+        queryset=Job.objects.filter(status='published').select_related('company','category')
+        Job.objects.filter(status='published').select_related('company','category')
+        job_filter=JobFilter(request.GET,queryset=queryset)
+        queryset=job_filter.qs
+        search_term=request.GET.get('search')
+
+        if search_term:
+            queryset=queryset.filter(Q(title_icontains=search_term)|Q(description_icontains=search_term))
+        ordering=request.GET.get('ordering','-created_at')
+        queryset=queryset.order_by(ordering)
+
+        return Response(JobListSerializer(queryset,many=True).data)
+    
+    if not request.user.is_authenticated:
+        return Response({
+            "detail": "Authentication required."
+        }, status=status.HTTP_401_UNAUTHORIZED)
+        
+    if request.user.user_type != 'employer':
+        return Response({
+            "detail": "Only can post Job."
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    employer_profile=get_object_or_404(EmployerProfile,user=request.user)
+    serializer=JobWriterSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    job=serializer.save(posted_by=employer_profile,company=employer_profile.company)
+
+    return Response(JobDetailSerializer(job).data,status=status.HTTP_201_CREATED)
+        
