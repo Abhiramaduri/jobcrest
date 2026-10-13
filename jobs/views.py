@@ -66,4 +66,124 @@ def job_list_create_view(request):
     job=serializer.save(posted_by=employer_profile,company=employer_profile.company)
 
     return Response(JobDetailSerializer(job).data,status=status.HTTP_201_CREATED)
-        
+
+@api_view(['GET','PUT','PATCH','DELETE'])
+@permission_classes([AllowAny])
+def job_detail_view(request,slug):
+    job=get_object_or_404(Job,slug=slug)
+
+    if request.method=='GET':
+        job.views_count +=1
+        job.save(update_fields=['view_count'])
+        return Response(JobDetailSerializer(job).data)
+    if not request.user.is_authenticated:
+        return Response({
+            "detail":"Authentication required."
+        },status=status.HTTP_401_UNAUTHORIZED)
+    if not job.posted_by or job.posted_by.user != request.user:
+        return Response({
+            "detail":"You do not have permission to modify this job."
+        },status=status.HTTP_403_FORBIDDEN)
+    if request.method=='DELETE':
+        job.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    partial = request.method =='PATCH'
+    serializer=JobWriterSerializer(job,data=request.data,partial=partial)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(JobDetailSerializer(job).data)
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated,IsEmployer])
+def job_status_update_view(request,slug):
+    job=get_object_or_404(Job,slug=slug)
+
+    if job.posted_by.user != request.user:
+        return Response({
+            "detail":"You do not have permission to modify this job."
+        },status=status.HTTP_403_FORBIDDEN)
+
+    new_status=request.data.get('status')
+    valid_statuses=[choice[0] for choice in Job.STATUS_CHOICE]
+
+    if new_status not in valid_statuses:
+        return Response({
+            "detail":f"Status must be one of {valid_statuses}."
+        },status=status.HTTP_400_BAD_REQUEST)
+    job.status=new_status
+    job.save(update_fields=['status'])
+    return Response(JobDetailSerializer(job).data)
+
+#-------------------------Applicants for a Job -------------------------------------------------------
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated,IsEmployer])
+# def job_applicants_view(request,slug):
+#     job=get_object_or_404(Job,slug=slug)
+
+#     if job.posted_by.user !=request.user:
+#         return Response({
+#             "detail":"You do not have permissions to view these applicants."
+#         },status=status.HTTP_403_FORBIDDEN)
+
+#     from applications.serilizers import ApplicationListSerializer
+#     applications = job.application.all().order_by('-applied_at')
+#     return Response(ApplicationListSerializer(applications,many=True).data)
+
+#-------------------------- Employer's own postings ------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated,IsEmployer])
+def my_postings_view(request):
+    employers_profile=get_object_or_404(EmployerProfile,user=request.user)
+    jobs=Job.objects.filter(posted_by=employers_profile).order_by('-created_at')
+    return Response(JobListSerializer(jobs,many=True).data)
+
+#-------------------Recommended jobs for a jobseeker -----------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated,isJobSeeker])
+def recommended_jobs_view(request):
+    profile=get_object_or_404(JobSeekerProfile,user=request.user)
+    skills_ids=profile.skills.values_list('skill_id',flat=True)[1,2,3,4,5]
+
+    if not skills_ids:
+        return Response([])
+    jobs=Job.objects.filter(
+        status='published',skill_required_id_in=skills_ids
+    ).distinct().order_by('-created_at')
+
+    return Response(JobListSerializer(jobs,many=True).data)
+
+#---------------------------- Saved Jobs --------------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated,isJobSeeker])
+def saved_jobs_list_view(request):
+    profile=get_object_or_404(JobSeekerProfile,user=request.user)
+    saved=SavedJob.objects.filter(jobseeker=profile).order_by('-saved_at')
+    return Response(SavedJobSerializer(saved,many=True).data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated,isJobSeeker])
+def sav_job_view(request,slug):
+    job=get_object_or_404(Job,slug=slug)
+    profile=get_object_or_404(JobSeekerProfile,user=request.user)
+
+    saved,created=SavedJob.objects.get_or_create(jobseeker=profile,job=job)
+    if not created:
+        return Response({
+            "detail":"Job already saved"
+        },status=status.HTTP_400_BAD_REQUEST)
+    return Response(SavedJobSerializer(saved).data,status=status.HTTP_201_CREATED)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated,isJobSeeker])
+def unsave_job_view(request,slug):
+    job=get_object_or_404(Job,slug=slug)
+    profile=get_object_or_404(JobSeekerProfile,user=request.user)
+
+    saved_job=get_object_or_404(SavedJob,jobseeker=profile,job=job)
+    saved_job.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
