@@ -7,6 +7,7 @@ class Application(models.Model):
     STATUS_CHOICES = (
         ('applied', 'Applied'),
         ('under_review', 'Under Review'),
+        ('shortlisted', 'Shortlisted'),
         ('shortlised', 'Shortlisted'),
         ('interview_scheduled', 'Interview Scheduled'),
         ('rejected', 'Rejected'),

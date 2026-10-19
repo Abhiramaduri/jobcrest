@@ -114,7 +114,7 @@ def jobseeker_profile_view(request):
 @parser_classes([MultiPartParser,FormParser])
 def jobseeker_resume_upload_view(request):
     profile=get_object_or_404(JobSeekerProfile,user=request.user)
-    resume_file=request.Files.get('resume')
+    resume_file = request.FILES.get('resume')
     if not resume_file:
         return Response({
             "detail":"No Resume file provided"
@@ -186,39 +186,40 @@ def experience_list_create_view(request):
 @api_view(['GET','PUT','PATCH','DELETE'])
 @permission_classes([IsAuthenticated,isJobSeeker])
 def experience_detail_view(request,pk):
-    experience=get_object_or_404(Experience,pk=pk,job_user=request.user)
+    experience = get_object_or_404(Experience, pk=pk, jobseeker__user=request.user)
 
     if request.method=='GET':
         return Response(ExperienceSerializer(experience).data)
 
     if request.method=='DELETE':
         experience.delete()
-        return Response({"message":"Deleted Successfully"},status=status.HTTP_204_NO_CONTENT)
+        return Response({"message":"Deleted Successfully"}, status=status.HTTP_204_NO_CONTENT)
 
-    partial=request.method=='PATCH'
-    serilizer=ExperienceSerializer(experience,data=request.data,partial=partial)
-    serilizer.is_valid(raise_exception=True)
-    serilizer.save(serilizer.data,status=status.HTTP_200_OK)
+    partial = request.method == 'PATCH'
+    serializer = ExperienceSerializer(experience, data=request.data, partial=partial)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 #--------------------------------------------Skills-------------------------------------------------
 
 @api_view(['GET','POST'])
 @permission_classes([IsAuthenticated,isJobSeeker])
 def skill_list_create_view(request):
-    profile=get_object_or_404(JobSeekerProfile,user=request.user)
+    profile = get_object_or_404(JobSeekerProfile, user=request.user)
 
     if request.method=='GET':
-        skills=JobSeekerProfile.objects.filter(jobseeker=profile)
-        return Response(JobSeekerSkillSerializer(skills,many=True).data)
-    serializer=JobSeekerSkillSerializer(data=request.data)
+        skills = JobSeekerSkill.objects.filter(jobseeker=profile)
+        return Response(JobSeekerSkillSerializer(skills, many=True).data)
+    serializer = JobSeekerSkillSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     serializer.save(jobseeker=profile)
-    return Response(serializer.data,status=status.HTTP_201_CREATED)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated,isJobSeeker])
 def skill_delete_view(request,pk):
-    skill=get_object_or_404(JobSeekerSkill,pk=pk,jobseeke_user=request.user)
+    skill = get_object_or_404(JobSeekerSkill, pk=pk, jobseeker__user=request.user)
     skill.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 

@@ -1,0 +1,487 @@
+### ====================================================================
+### ALL_APIS.HTTP - Complete End-to-End API Test Suite for JobCrest
+### ====================================================================
+
+@baseUrl = http://127.0.0.1:8000/api
+@jobseekerToken = REPLACE_WITH_JOBSEEKER_TOKEN
+@employerToken = REPLACE_WITH_EMPLOYER_TOKEN
+@refreshToken = REPLACE_WITH_REFRESH_TOKEN
+@companySlug = apex-technologies
+@jobSlug = senior-backend-python-engineer
+@jobId = 1
+@applicationId = 1
+@interviewId = 1
+@skillId = 1
+@educationId = 1
+@experienceId = 1
+@jobseekerSkillId = 1
+@profileId = 1
+@recruiterUserId = 1
+
+########################################################################
+# SECTION 1: AUTHENTICATION & TOKENS
+########################################################################
+
+### 1.1 Register JobSeeker
+# @name registerJobSeeker
+POST {{baseUrl}}/auth/register/
+Content-Type: application/json
+
+{
+  "username": "jobseeker_demo",
+  "email": "jobseeker_demo@example.com",
+  "password": "Password123!",
+  "password2": "Password123!",
+  "user_type": "jobseeker",
+  "phone_number": "9876543210"
+}
+
+### 1.2 Register Employer
+# @name registerEmployer
+POST {{baseUrl}}/auth/register/
+Content-Type: application/json
+
+{
+  "username": "employer_demo",
+  "email": "employer_demo@example.com",
+  "password": "Password123!",
+  "password2": "Password123!",
+  "user_type": "employer",
+  "phone_number": "9123456780"
+}
+
+### 1.3 Login as JobSeeker
+# @name loginJobSeeker
+POST {{baseUrl}}/auth/login/
+Content-Type: application/json
+
+{
+  "username": "jobseeker_demo",
+  "password": "Password123!"
+}
+
+### 1.4 Login as Employer
+# @name loginEmployer
+POST {{baseUrl}}/auth/login/
+Content-Type: application/json
+
+{
+  "username": "employer_demo",
+  "password": "Password123!"
+}
+
+### 1.5 Refresh Access Token
+# @name refreshToken
+POST {{baseUrl}}/auth/refresh/
+Content-Type: application/json
+
+{
+  "refresh": "{{refreshToken}}"
+}
+
+### 1.6 Current Authenticated User (Me)
+# @name getMe
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{jobseekerToken}}
+
+### 1.7 Request Password Reset
+# @name requestPasswordReset
+POST {{baseUrl}}/auth/password-reset/
+Content-Type: application/json
+
+{
+  "email": "jobseeker_demo@example.com"
+}
+
+### 1.8 Confirm Password Reset
+# @name confirmPasswordReset
+POST {{baseUrl}}/auth/password-reset-confirm/
+Content-Type: application/json
+
+{
+  "new_password": "NewStrongPassword123!"
+}
+
+########################################################################
+# SECTION 2: JOBSEEKER PROFILE, EDUCATION, EXPERIENCE & SKILLS
+########################################################################
+
+### 2.1 Get All Public Skills
+# @name listAllSkills
+GET {{baseUrl}}/skills/
+
+### 2.2 Get JobSeeker Profile
+# @name getJobSeekerProfile
+GET {{baseUrl}}/jobseeker/profile/
+Authorization: Bearer {{jobseekerToken}}
+
+### 2.3 Update JobSeeker Profile Full (PUT)
+# @name updateJobSeekerProfileFull
+PUT {{baseUrl}}/jobseeker/profile/
+Authorization: Bearer {{jobseekerToken}}
+Content-Type: application/json
+
+{
+  "full_name": "Demo JobSeeker",
+  "headline": "Python & Django Full Stack Engineer",
+  "bio": "Passionate backend engineer with 3+ years experience designing robust APIs.",
+  "date_of_birth": "1998-08-20",
+  "location": "Bangalore, India",
+  "experience_years": 3,
+  "current_ctc": "800000.00",
+  "expected_ctc": "1400000.00",
+  "linkedin_url": "https://linkedin.com/in/demouser",
+  "github_url": "https://github.com/demouser",
+  "is_open_to_work": true
+}
+
+### 2.4 Partial Update JobSeeker Profile (PATCH)
+# @name updateJobSeekerProfilePartial
+PATCH {{baseUrl}}/jobseeker/profile/
+Authorization: Bearer {{jobseekerToken}}
+Content-Type: application/json
+
+{
+  "headline": "Senior Full Stack Python/Django Engineer"
+}
+
+### 2.5 Get Public JobSeeker Profile
+# @name getPublicProfile
+GET {{baseUrl}}/jobseeker/profile/{{profileId}}
+Authorization: Bearer {{jobseekerToken}}
+
+### 2.6 Add JobSeeker Education
+# @name addEducation
+POST {{baseUrl}}/jobseeker/education/
+Authorization: Bearer {{jobseekerToken}}
+Content-Type: application/json
+
+{
+  "degree": "Bachelor of Technology in Computer Science",
+  "institution": "National Institute of Technology",
+  "field_of_study": "Computer Science & Engineering",
+  "start_year": 2018,
+  "end_year": 2022,
+  "grade": "8.7 CGPA"
+}
+
+### 2.7 List JobSeeker Education
+# @name listEducation
+GET {{baseUrl}}/jobseeker/education/
+Authorization: Bearer {{jobseekerToken}}
+
+### 2.8 Get Education Detail
+# @name getEducationDetail
+GET {{baseUrl}}/jobseeker/education/{{educationId}}/
+Authorization: Bearer {{jobseekerToken}}
+
+### 2.9 Partial Update Education Detail
+# @name updateEducationDetail
+PATCH {{baseUrl}}/jobseeker/education/{{educationId}}/
+Authorization: Bearer {{jobseekerToken}}
+Content-Type: application/json
+
+{
+  "grade": "9.1 CGPA"
+}
+
+### 2.10 Add JobSeeker Experience
+# @name addExperience
+POST {{baseUrl}}/jobseeker/experience/
+Authorization: Bearer {{jobseekerToken}}
+Content-Type: application/json
+
+{
+  "company_name": "Acme Tech Solutions",
+  "role_title": "Backend Software Engineer",
+  "start_date": "2022-07-01",
+  "end_date": null,
+  "is_current": true,
+  "description": "Architecting microservices and DRF endpoints with high performance and test coverage."
+}
+
+### 2.11 List JobSeeker Experience
+# @name listExperience
+GET {{baseUrl}}/jobseeker/experience/
+Authorization: Bearer {{jobseekerToken}}
+
+### 2.12 Get Experience Detail
+# @name getExperienceDetail
+GET {{baseUrl}}/jobseeker/experience/{{experienceId}}/
+Authorization: Bearer {{jobseekerToken}}
+
+### 2.13 Partial Update Experience Detail
+# @name updateExperienceDetail
+PATCH {{baseUrl}}/jobseeker/experience/{{experienceId}}/
+Authorization: Bearer {{jobseekerToken}}
+Content-Type: application/json
+
+{
+  "role_title": "Senior Backend Software Engineer"
+}
+
+### 2.14 Add Skill to JobSeeker Profile
+# @name addJobSeekerSkill
+POST {{baseUrl}}/jobseeker/skills/
+Authorization: Bearer {{jobseekerToken}}
+Content-Type: application/json
+
+{
+  "skill": {{skillId}},
+  "proficiency": "expert"
+}
+
+### 2.15 List JobSeeker Assigned Skills
+# @name listJobSeekerSkills
+GET {{baseUrl}}/jobseeker/skills/
+Authorization: Bearer {{jobseekerToken}}
+
+########################################################################
+# SECTION 3: COMPANIES & EMPLOYER MANAGEMENT
+########################################################################
+
+### 3.1 List All Companies
+# @name listCompanies
+GET {{baseUrl}}/companies/
+
+### 3.2 Create Company (Employer Only)
+# @name createCompany
+POST {{baseUrl}}/companies/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "name": "Apex Technologies",
+  "industry": "Software & Information Technology",
+  "location": "Bangalore, Karnataka, India",
+  "company_size": "51-200",
+  "website": "https://apextechnologies.example.com",
+  "description": "Apex Technologies creates next-generation cloud and artificial intelligence platforms.",
+  "founded_year": 2021
+}
+
+### 3.3 Get Company Details by Slug
+# @name getCompanyDetail
+GET {{baseUrl}}/companies/{{companySlug}}/
+
+### 3.4 Partial Update Company (Owner Employer Only)
+# @name updateCompany
+PATCH {{baseUrl}}/companies/{{companySlug}}/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "company_size": "201-500"
+}
+
+### 3.5 List Recruiters in Company
+# @name listCompanyRecruiters
+GET {{baseUrl}}/companies/{{companySlug}}/recruiters/
+Authorization: Bearer {{employerToken}}
+
+### 3.6 Get Employer's Own Profile
+# @name getEmployerProfile
+GET {{baseUrl}}/employers/profile/
+Authorization: Bearer {{employerToken}}
+
+### 3.7 Partial Update Employer's Own Profile
+# @name updateEmployerProfile
+PATCH {{baseUrl}}/employers/profile/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "designation": "Director of Engineering & Hiring"
+}
+
+########################################################################
+# SECTION 4: JOBS
+########################################################################
+
+### 4.1 List Job Categories
+# @name listJobCategories
+GET {{baseUrl}}/jobs/categories/
+
+### 4.2 List Job Skills Reference
+# @name listJobSkills
+GET {{baseUrl}}/jobs/skills/
+
+### 4.3 List Published Jobs (Search & Filter)
+# @name listJobs
+GET {{baseUrl}}/jobs/?search=python&ordering=-created_at
+
+### 4.4 Create Job Posting (Employer Only)
+# @name createJob
+POST {{baseUrl}}/jobs/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "title": "Senior Backend Python Engineer",
+  "category": 1,
+  "description": "We are seeking a talented Senior Backend Python Engineer to design and scale high-throughput REST APIs.",
+  "responsibilities": "Design and build Django REST framework services, write automated unit tests, optimize database queries.",
+  "requirements": "3+ years Python experience, PostgreSQL, RESTful design principles, Docker knowledge.",
+  "job_type": "full-time",
+  "experience_min": 3,
+  "experience_max": 6,
+  "salary_min": "1200000.00",
+  "salary_max": "1800000.00",
+  "salary_currency": "INR",
+  "location": "Bangalore, India",
+  "is_remote": true,
+  "skills_required": [{{skillId}}],
+  "vacancies": 3,
+  "status": "published",
+  "application_deadline": "2026-12-31"
+}
+
+### 4.5 Get Job Detail by Slug
+# @name getJobDetail
+GET {{baseUrl}}/jobs/{{jobSlug}}/
+
+### 4.6 Partial Update Job
+# @name updateJobPartial
+PATCH {{baseUrl}}/jobs/{{jobSlug}}/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "vacancies": 5
+}
+
+### 4.7 Update Job Status
+# @name updateJobStatus
+PATCH {{baseUrl}}/jobs/{{jobSlug}}/status/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "status": "published"
+}
+
+### 4.8 List Employer's Own Job Postings
+# @name listMyPostings
+GET {{baseUrl}}/jobs/my-postings/
+Authorization: Bearer {{employerToken}}
+
+### 4.9 Get Recommended Jobs (JobSeeker)
+# @name getRecommendedJobs
+GET {{baseUrl}}/jobs/recommended/
+Authorization: Bearer {{jobseekerToken}}
+
+### 4.10 Save Job for Later (JobSeeker)
+# @name saveJob
+POST {{baseUrl}}/jobs/{{jobSlug}}/save/
+Authorization: Bearer {{jobseekerToken}}
+
+### 4.11 List Saved Jobs (JobSeeker)
+# @name listSavedJobs
+GET {{baseUrl}}/jobs/saved/
+Authorization: Bearer {{jobseekerToken}}
+
+### 4.12 Unsave Job (JobSeeker)
+# @name unsaveJob
+DELETE {{baseUrl}}/jobs/{{jobSlug}}/unsave/
+Authorization: Bearer {{jobseekerToken}}
+
+########################################################################
+# SECTION 5: APPLICATIONS & INTERVIEWS
+########################################################################
+
+### 5.1 Apply to Job (JobSeeker)
+# @name applyToJob
+POST {{baseUrl}}/application/
+Authorization: Bearer {{jobseekerToken}}
+Content-Type: application/json
+
+{
+  "job": {{jobId}},
+  "cover_letter": "I am eager to contribute to Apex Technologies with my expertise in scalable Python web services."
+}
+
+### 5.2 List JobSeeker's Own Applications
+# @name listMyApplications
+GET {{baseUrl}}/applications/my-application/
+Authorization: Bearer {{jobseekerToken}}
+
+### 5.3 List Applications for a Specific Job (Employer)
+# @name listApplicationsByJob
+GET {{baseUrl}}/applications/job/{{jobId}}/
+Authorization: Bearer {{employerToken}}
+
+### 5.4 Get Application Detail
+# @name getApplicationDetail
+GET {{baseUrl}}/applications/{{applicationId}}/
+Authorization: Bearer {{jobseekerToken}}
+
+### 5.5 Update Application Status (Employer)
+# @name updateApplicationStatus
+PATCH {{baseUrl}}/applications/{{applicationId}}/status/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "status": "shortlisted",
+  "notes": "Candidate meets core backend qualifications. Proceeding to scheduling interview."
+}
+
+### 5.6 Get Application Status History
+# @name getApplicationHistory
+GET {{baseUrl}}/applications/{{applicationId}}/history/
+Authorization: Bearer {{jobseekerToken}}
+
+### 5.7 Schedule Interview (Employer)
+# @name scheduleInterview
+POST {{baseUrl}}/interviews/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "application": {{applicationId}},
+  "scheduled_at": "2026-11-15T10:30:00Z",
+  "mode": "online",
+  "meeting_link": "https://meet.google.com/abc-demo-xyz",
+  "interview_notes": "First round: Python, DRF & System Architecture discussion."
+}
+
+### 5.8 List JobSeeker's Scheduled Interviews
+# @name listMyInterviews
+GET {{baseUrl}}/interviews/my-interviews/
+Authorization: Bearer {{jobseekerToken}}
+
+### 5.9 List Employer's Scheduled Interviews
+# @name listEmployerInterviews
+GET {{baseUrl}}/interviews/employer/
+Authorization: Bearer {{employerToken}}
+
+### 5.10 Get Interview Detail
+# @name getInterviewDetail
+GET {{baseUrl}}/interviews/{{interviewId}}/
+Authorization: Bearer {{jobseekerToken}}
+
+### 5.11 Update Interview Result & Notes (Employer)
+# @name updateInterview
+PATCH {{baseUrl}}/interviews/{{interviewId}}/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "result": "passed",
+  "interview_notes": "Candidate performed exceptionally in API design and live algorithm tasks."
+}
+
+### 5.12 Withdraw Job Application (JobSeeker)
+# @name withdrawApplication
+DELETE {{baseUrl}}/applications/{{applicationId}}/
+Authorization: Bearer {{jobseekerToken}}
+
+### 5.13 Logout User
+# @name logoutUser
+POST {{baseUrl}}/auth/logout/
+Authorization: Bearer {{jobseekerToken}}
+Content-Type: application/json
+
+{
+  "refresh": "{{refreshToken}}"
+}

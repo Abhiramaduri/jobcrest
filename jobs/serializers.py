@@ -6,55 +6,56 @@ from companies.serializers import CompanyListSerializer
 
 class JobCategorySerializer(serializers.ModelSerializer):
     class Meta:
-        model=JobCategory
-        fields=('id','name','slug')
-        read_only_fields=('slug'),
+        model = JobCategory
+        fields = ('id', 'name', 'slug')
+        read_only_fields = ('id', 'slug')
+
 class JobListSerializer(serializers.ModelSerializer):
-    comapany=CompanyListSerializer(read_only=True)
-    category_name=CharField(source='category.name',read_only=True)
+    company = CompanyListSerializer(read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
 
     class Meta:
-        model=Job
-        fields=(
-            'id','title','slug','company','category_name','job_type',
-            'location','is_remote','salary_min','salary_max','salary_currency'
+        model = Job
+        fields = (
+            'id', 'title', 'slug', 'company', 'category_name', 'job_type',
+            'location', 'is_remote', 'salary_min', 'salary_max', 'salary_currency', 'status', 'created_at'
         )
 
 class JobDetailSerializer(serializers.ModelSerializer):
-    company=CompanyListSerializer(read_only=True)
-    category=JobCategorySerializer(read_only=True)
-    skills_required=SkillSerializer(many=True,read_only=True)
-    posted_by_username=serializers.CharField(source='posted_by.user.username', read_only=True)
+    company = CompanyListSerializer(read_only=True)
+    category = JobCategorySerializer(read_only=True)
+    skills_required = SkillSerializer(source='skill_required', many=True, read_only=True)
+    posted_by_username = serializers.CharField(source='posted_by.user.username', read_only=True)
 
     class Meta:
-        model=Job
-        fields=(
-            'id','title','slug','company','posted_by','posted_by_username', 'category', 'description', 'responsibilities', 'requirements',
+        model = Job
+        fields = (
+            'id', 'title', 'slug', 'company', 'posted_by', 'posted_by_username', 'category', 'description', 'responsibilities', 'requirements',
             'job_type', 'experience_min', 'experience_max', 'salary_min',
             'salary_max', 'salary_currency', 'location', 'is_remote',
             'skills_required', 'vacancies', 'status', 'application_deadline',
-            'created_at', 'updated_at',
+            'created_at', 'updated_at', 'views_count'
         )
-        read_only_fields=('id','slug','posted_by','created_at','updated_at','views_count')
-
+        read_only_fields = ('id', 'slug', 'posted_by', 'created_at', 'updated_at', 'views_count')
 
 class JobWriterSerializer(serializers.ModelSerializer):
-    skills_required=serializers.PrimaryKeyRelatedField(
-        many=True,queryset=Skill.objects.all(),required=False
+    skills_required = serializers.PrimaryKeyRelatedField(
+        source='skill_required', many=True, queryset=Skill.objects.all(), required=False
     )
 
     class Meta:
-        model=Job
-        fields=(
-            'id','title','company','category','description','responsibilities',
+        model = Job
+        fields = (
+            'id', 'title', 'company', 'category', 'description', 'responsibilities',
             'requirements', 'job_type', 'experience_min', 'experience_max', 'salary_min', 'salary_max', 'salary_currency',
             'location', 'is_remote', 'skills_required', 'vacancies', 'status', 'application_deadline',
         )
-        read_only_fields=('id',)
+        read_only_fields = ('id', 'company')
+
 class SavedJobSerializer(serializers.ModelSerializer):
-    job=JobListSerializer(read_only=True)
+    job = JobListSerializer(read_only=True)
 
     class Meta:
-        model=SavedJob
-        fields=('id','job','saved_at')
-        read_only_fields=('id','saved_at')
+        model = SavedJob
+        fields = ('id', 'job', 'saved_at')
+        read_only_fields = ('id', 'saved_at')

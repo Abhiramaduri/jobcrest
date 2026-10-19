@@ -1,0 +1,80 @@
+### ====================================================================
+### 03_COMPANIES.HTTP - Company Profiles, Recruiters & Employer Management
+### ====================================================================
+
+@baseUrl = http://127.0.0.1:8000/api
+@employerToken = REPLACE_WITH_EMPLOYER_TOKEN
+@companySlug = apex-technologies
+@recruiterUserId = 1
+
+### 1. List All Companies (Public)
+# @name listCompanies
+GET {{baseUrl}}/companies/
+
+### 2. Create Company (Employer Only)
+# @name createCompany
+POST {{baseUrl}}/companies/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "name": "Apex Technologies",
+  "industry": "Software & Information Technology",
+  "location": "Bangalore, Karnataka, India",
+  "company_size": "51-200",
+  "website": "https://apextechnologies.example.com",
+  "description": "Apex Technologies creates next-generation cloud and artificial intelligence platforms.",
+  "founded_year": 2021
+}
+
+### 3. Get Company Details by Slug (Public)
+# @name getCompanyDetail
+GET {{baseUrl}}/companies/{{companySlug}}/
+
+### 4. Partial Update Company (Owner Employer Only)
+# @name updateCompany
+PATCH {{baseUrl}}/companies/{{companySlug}}/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "description": "Apex Technologies is a premier provider of cloud architecture and AI enterprise tools.",
+  "company_size": "201-500"
+}
+
+### 5. List Recruiters in Company
+# @name listCompanyRecruiters
+GET {{baseUrl}}/companies/{{companySlug}}/recruiters/
+Authorization: Bearer {{employerToken}}
+
+### 6. Add Recruiter to Company (Company Admin Only)
+# @name addRecruiter
+POST {{baseUrl}}/companies/{{companySlug}}/recruiters/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "user": {{recruiterUserId}},
+  "designation": "Senior Talent Acquisition Specialist",
+  "is_company_admin": false
+}
+
+### 7. Get Employer's Own Profile
+# @name getEmployerProfile
+GET {{baseUrl}}/employers/profile/
+Authorization: Bearer {{employerToken}}
+
+### 8. Update Employer's Own Profile (PATCH)
+# @name updateEmployerProfile
+PATCH {{baseUrl}}/employers/profile/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "designation": "Director of Engineering & Hiring"
+}
+
+### 9. Delete Company (Owner Employer Only)
+# @name deleteCompany
+DELETE {{baseUrl}}/companies/{{companySlug}}/
+Authorization: Bearer {{employerToken}}

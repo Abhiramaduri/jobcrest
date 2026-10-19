@@ -1,0 +1,101 @@
+### ====================================================================
+### 05_APPLICATIONS.HTTP - Job Applications, Status Workflow & Interviews
+### ====================================================================
+
+@baseUrl = http://127.0.0.1:8000/api
+@jobseekerToken = REPLACE_WITH_JOBSEEKER_TOKEN
+@employerToken = REPLACE_WITH_EMPLOYER_TOKEN
+@jobId = 1
+@applicationId = 1
+@interviewId = 1
+
+### 1. Apply to Job (JobSeeker Only)
+# @name applyToJob
+POST {{baseUrl}}/application/
+Authorization: Bearer {{jobseekerToken}}
+Content-Type: application/json
+
+{
+  "job": {{jobId}},
+  "cover_letter": "I am eager to contribute to Apex Technologies with my expertise in scalable Python web services."
+}
+
+### 2. List JobSeeker's Own Applications
+# @name listMyApplications
+GET {{baseUrl}}/applications/my-application/
+Authorization: Bearer {{jobseekerToken}}
+
+### 3. List Applications for a Specific Job (Employer Only)
+# @name listApplicationsByJob
+GET {{baseUrl}}/applications/job/{{jobId}}/
+Authorization: Bearer {{employerToken}}
+
+### 4. Get Application Detail
+# @name getApplicationDetail
+GET {{baseUrl}}/applications/{{applicationId}}/
+Authorization: Bearer {{jobseekerToken}}
+
+### 5. Update Application Status (Employer Only)
+# Options: applied, under_review, shortlisted, interview_scheduled, rejected, hired
+# @name updateApplicationStatus
+PATCH {{baseUrl}}/applications/{{applicationId}}/status/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "status": "shortlisted",
+  "notes": "Candidate meets core backend qualifications. Proceeding to scheduling interview."
+}
+
+### 6. Get Application Status History
+# @name getApplicationHistory
+GET {{baseUrl}}/applications/{{applicationId}}/history/
+Authorization: Bearer {{jobseekerToken}}
+
+### 7. Schedule Interview (Employer Only)
+# Mode: online | in-person | phone
+# @name scheduleInterview
+POST {{baseUrl}}/interviews/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "application": {{applicationId}},
+  "scheduled_at": "2026-11-15T10:30:00Z",
+  "mode": "online",
+  "meeting_link": "https://meet.google.com/abc-demo-xyz",
+  "interview_notes": "First round: Python, DRF & System Architecture discussion."
+}
+
+### 8. List JobSeeker's Scheduled Interviews
+# @name listMyInterviews
+GET {{baseUrl}}/interviews/my-interviews/
+Authorization: Bearer {{jobseekerToken}}
+
+### 9. List Employer's Scheduled Interviews
+# @name listEmployerInterviews
+GET {{baseUrl}}/interviews/employer/
+Authorization: Bearer {{employerToken}}
+
+### 10. Get Interview Detail
+# @name getInterviewDetail
+GET {{baseUrl}}/interviews/{{interviewId}}/
+Authorization: Bearer {{jobseekerToken}}
+
+### 11. Update Interview Result & Notes (Employer Only)
+# Result: pending | passed | failed
+# @name updateInterview
+PATCH {{baseUrl}}/interviews/{{interviewId}}/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "result": "passed",
+  "interview_notes": "Candidate performed exceptionally in API design and live algorithm tasks."
+}
+
+### 12. Withdraw Job Application (JobSeeker Only)
+# @name withdrawApplication
+DELETE {{baseUrl}}/applications/{{applicationId}}/
+Authorization: Bearer {{jobseekerToken}}
+

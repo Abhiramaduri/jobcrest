@@ -1,0 +1,158 @@
+### ====================================================================
+### 02_ACCOUNTS.HTTP - JobSeeker Profile, Education, Experience, Skills
+### ====================================================================
+
+@baseUrl = http://127.0.0.1:8000/api
+@token = REPLACE_WITH_JOBSEEKER_TOKEN
+@profileId = 1
+@educationId = 1
+@experienceId = 1
+@skillId = 1
+@jobseekerSkillId = 1
+
+### 1. Get All System Skills (Public)
+# @name listAllSkills
+GET {{baseUrl}}/skills/
+
+### 2. Get JobSeeker Profile (Authenticated JobSeeker)
+# @name getJobSeekerProfile
+GET {{baseUrl}}/jobseeker/profile/
+Authorization: Bearer {{token}}
+
+### 3. Update JobSeeker Profile Full (PUT)
+# @name updateJobSeekerProfileFull
+PUT {{baseUrl}}/jobseeker/profile/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "full_name": "Demo JobSeeker",
+  "headline": "Python & Django Full Stack Engineer",
+  "bio": "Passionate backend engineer with 3+ years experience designing robust APIs.",
+  "date_of_birth": "1998-08-20",
+  "location": "Bangalore, India",
+  "experience_years": 3,
+  "current_ctc": "800000.00",
+  "expected_ctc": "1400000.00",
+  "linkedin_url": "https://linkedin.com/in/demouser",
+  "github_url": "https://github.com/demouser",
+  "is_open_to_work": true
+}
+
+### 4. Partial Update JobSeeker Profile (PATCH)
+# @name updateJobSeekerProfilePartial
+PATCH {{baseUrl}}/jobseeker/profile/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "headline": "Senior Full Stack Python/Django Engineer",
+  "is_open_to_work": true
+}
+
+### 5. Get Public JobSeeker Profile
+# @name getPublicProfile
+GET {{baseUrl}}/jobseeker/profile/{{profileId}}
+Authorization: Bearer {{token}}
+
+### 6. List JobSeeker Education
+# @name listEducation
+GET {{baseUrl}}/jobseeker/education/
+Authorization: Bearer {{token}}
+
+### 7. Add JobSeeker Education
+# @name addEducation
+POST {{baseUrl}}/jobseeker/education/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "degree": "Bachelor of Technology in Computer Science",
+  "institution": "National Institute of Technology",
+  "field_of_study": "Computer Science & Engineering",
+  "start_year": 2018,
+  "end_year": 2022,
+  "grade": "8.7 CGPA"
+}
+
+### 8. Get Education Detail
+# @name getEducationDetail
+GET {{baseUrl}}/jobseeker/education/{{educationId}}/
+Authorization: Bearer {{token}}
+
+### 9. Update Education Detail (PATCH)
+# @name updateEducationDetail
+PATCH {{baseUrl}}/jobseeker/education/{{educationId}}/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "grade": "9.1 CGPA"
+}
+
+### 10. Delete Education Detail
+# @name deleteEducation
+DELETE {{baseUrl}}/jobseeker/education/{{educationId}}/
+Authorization: Bearer {{token}}
+
+### 11. List JobSeeker Experience
+# @name listExperience
+GET {{baseUrl}}/jobseeker/experience/
+Authorization: Bearer {{token}}
+
+### 12. Add JobSeeker Experience
+# @name addExperience
+POST {{baseUrl}}/jobseeker/experience/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "company_name": "Acme Tech Solutions",
+  "role_title": "Backend Software Engineer",
+  "start_date": "2022-07-01",
+  "end_date": null,
+  "is_current": true,
+  "description": "Architecting microservices and DRF endpoints with high performance and test coverage."
+}
+
+### 13. Get Experience Detail
+# @name getExperienceDetail
+GET {{baseUrl}}/jobseeker/experience/{{experienceId}}/
+Authorization: Bearer {{token}}
+
+### 14. Update Experience Detail (PATCH)
+# @name updateExperienceDetail
+PATCH {{baseUrl}}/jobseeker/experience/{{experienceId}}/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role_title": "Senior Backend Software Engineer"
+}
+
+### 15. Delete Experience Detail
+# @name deleteExperience
+DELETE {{baseUrl}}/jobseeker/experience/{{experienceId}}/
+Authorization: Bearer {{token}}
+
+### 16. List JobSeeker Assigned Skills
+# @name listJobSeekerSkills
+GET {{baseUrl}}/jobseeker/skills/
+Authorization: Bearer {{token}}
+
+### 17. Add Skill to JobSeeker Profile
+# @name addJobSeekerSkill
+POST {{baseUrl}}/jobseeker/skills/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "skill": {{skillId}},
+  "proficiency": "expert"
+}
+
+### 18. Delete Skill from JobSeeker Profile
+# @name deleteJobSeekerSkill
+DELETE {{baseUrl}}/jobseeker/skills/{{jobseekerSkillId}}/
+Authorization: Bearer {{token}}
+

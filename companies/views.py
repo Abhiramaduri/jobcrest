@@ -44,7 +44,7 @@ def company_list_create_view(request):
 @api_view(['GET','PUT','PATCH','DELETE'])
 @permission_classes([AllowAny])
 def company_detail_view(request,slug):
-    company=get_object_or_404(CompanySerializer(company).data)
+    company = get_object_or_404(Company, slug=slug)
 
     if request.method=='GET':
         return Response(CompanySerializer(company).data)
@@ -59,9 +59,10 @@ def company_detail_view(request,slug):
         },status=status.HTTP_403_FORBIDDEN)
     if request.method=='DELETE':
         company.delete()
-        return Response(status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
     partial=request.method=='PATCH'
     serializer=CompanySerializer(company,data=request.data,partial=partial)
+    serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data)
 
@@ -83,12 +84,12 @@ def company_detail_view(request,slug):
 @api_view(['GET','POST'])
 @permission_classes([IsAuthenticated,IsEmployer])
 def company_recruiters_view(request,slug):
-    company=get_object_or_404(Company,slug=slug)
+    company = get_object_or_404(Company, slug=slug)
 
     if request.method=='GET':
-        recruiters=EmployerProfile.object.filter(company=company)
+        recruiters = EmployerProfile.objects.filter(company=company)
         return Response(EmployerProfileSerializer(recruiters,many=True).data)
-    requester_profile=get_object_or_404(EmployerProfile,user=request,company=company)
+    requester_profile = get_object_or_404(EmployerProfile, user=request.user, company=company)
     if not requester_profile.is_company_admin:
         return Response({
             "detail":"Only a company admin can add recruiters."

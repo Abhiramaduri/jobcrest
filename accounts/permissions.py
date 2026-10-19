@@ -11,3 +11,5 @@ class IsEmployer(BasePermission):
         return bool(
             request.user and request.user.is_authenticated and request.user.user_type=='employer'
         )
+
+IsJobSeeker = isJobSeeker

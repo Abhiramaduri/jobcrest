@@ -1,0 +1,104 @@
+### ====================================================================
+### 04_JOBS.HTTP - Job Categories, Job Postings, Recommendations & Saved Jobs
+### ====================================================================
+
+@baseUrl = http://127.0.0.1:8000/api
+@jobseekerToken = REPLACE_WITH_JOBSEEKER_TOKEN
+@employerToken = REPLACE_WITH_EMPLOYER_TOKEN
+@jobSlug = senior-backend-python-engineer
+@categoryId = 1
+@skillId = 1
+
+### 1. List Job Categories (Public)
+# @name listJobCategories
+GET {{baseUrl}}/jobs/categories/
+
+### 2. List Job Skills Reference (Public)
+# @name listJobSkills
+GET {{baseUrl}}/jobs/skills/
+
+### 3. List Published Jobs (Public with Search & Filters)
+# @name listJobs
+GET {{baseUrl}}/jobs/?search=python&ordering=-created_at
+
+### 4. Create Job Posting (Employer Only)
+# @name createJob
+POST {{baseUrl}}/jobs/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "title": "Senior Backend Python Engineer",
+  "category": {{categoryId}},
+  "description": "We are seeking a talented Senior Backend Python Engineer to design and scale high-throughput REST APIs.",
+  "responsibilities": "Design and build Django REST framework services, write automated unit tests, optimize database queries.",
+  "requirements": "3+ years Python experience, PostgreSQL, RESTful design principles, Docker knowledge.",
+  "job_type": "full-time",
+  "experience_min": 3,
+  "experience_max": 6,
+  "salary_min": "1200000.00",
+  "salary_max": "1800000.00",
+  "salary_currency": "INR",
+  "location": "Bangalore, India",
+  "is_remote": true,
+  "skills_required": [{{skillId}}],
+  "vacancies": 3,
+  "status": "published",
+  "application_deadline": "2026-12-31"
+}
+
+### 5. Get Job Detail by Slug (Public - Increments Views Count)
+# @name getJobDetail
+GET {{baseUrl}}/jobs/{{jobSlug}}/
+
+### 6. Partial Update Job (Posted-by Employer Only)
+# @name updateJobPartial
+PATCH {{baseUrl}}/jobs/{{jobSlug}}/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "vacancies": 5,
+  "salary_max": "2000000.00"
+}
+
+### 7. Update Job Status (Employer Only - published, draft, closed, expired)
+# @name updateJobStatus
+PATCH {{baseUrl}}/jobs/{{jobSlug}}/status/
+Authorization: Bearer {{employerToken}}
+Content-Type: application/json
+
+{
+  "status": "published"
+}
+
+### 8. List Employer's Own Job Postings
+# @name listMyPostings
+GET {{baseUrl}}/jobs/my-postings/
+Authorization: Bearer {{employerToken}}
+
+### 9. Get Recommended Jobs (JobSeeker Based on Profile Skills)
+# @name getRecommendedJobs
+GET {{baseUrl}}/jobs/recommended/
+Authorization: Bearer {{jobseekerToken}}
+
+### 10. Save Job for Later (JobSeeker Only)
+# @name saveJob
+POST {{baseUrl}}/jobs/{{jobSlug}}/save/
+Authorization: Bearer {{jobseekerToken}}
+
+### 11. List Saved Jobs (JobSeeker Only)
+# @name listSavedJobs
+GET {{baseUrl}}/jobs/saved/
+Authorization: Bearer {{jobseekerToken}}
+
+### 12. Unsave Job (JobSeeker Only)
+# @name unsaveJob
+DELETE {{baseUrl}}/jobs/{{jobSlug}}/unsave/
+Authorization: Bearer {{jobseekerToken}}
+
+### 13. Delete Job Posting (Employer Owner Only)
+# @name deleteJob
+DELETE {{baseUrl}}/jobs/{{jobSlug}}/
+Authorization: Bearer {{employerToken}}
+

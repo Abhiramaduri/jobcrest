@@ -1,0 +1,98 @@
+### ====================================================================
+### 01_AUTH.HTTP - Authentication & User Management APIs
+### ====================================================================
+
+@baseUrl = http://127.0.0.1:8000/api
+@token = {{loginJobSeeker.response.body.access}}
+@refreshToken = {{loginJobSeeker.response.body.refresh}}
+
+### 1. Register a Job Seeker
+# @name registerJobSeeker
+POST {{baseUrl}}/auth/register/
+Content-Type: application/json
+
+{
+  "username": "jobseeker_demo",
+  "email": "jobseeker_demo@example.com",
+  "password": "Password123!",
+  "password2": "Password123!",
+  "user_type": "jobseeker",
+  "phone_number": "9876543210"
+}
+
+### 2. Register an Employer
+# @name registerEmployer
+POST {{baseUrl}}/auth/register/
+Content-Type: application/json
+
+{
+  "username": "employer_demo",
+  "email": "employer_demo@example.com",
+  "password": "Password123!",
+  "password2": "Password123!",
+  "user_type": "employer",
+  "phone_number": "9123456780"
+}
+
+### 3. Login as Job Seeker
+# @name loginJobSeeker
+POST {{baseUrl}}/auth/login/
+Content-Type: application/json
+
+{
+  "username": "jobseeker_demo",
+  "password": "Password123!"
+}
+
+### 4. Login as Employer
+# @name loginEmployer
+POST {{baseUrl}}/auth/login/
+Content-Type: application/json
+
+{
+  "username": "employer_demo",
+  "password": "Password123!"
+}
+
+### 5. Refresh Access Token
+# @name refreshToken
+POST {{baseUrl}}/auth/refresh/
+Content-Type: application/json
+
+{
+  "refresh": "{{refreshToken}}"
+}
+
+### 6. Get Current User (Me)
+# @name getMe
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### 7. Request Password Reset
+# @name requestPasswordReset
+POST {{baseUrl}}/auth/password-reset/
+Content-Type: application/json
+
+{
+  "email": "jobseeker_demo@example.com"
+}
+
+### 8. Confirm Password Reset
+# @name confirmPasswordReset
+POST {{baseUrl}}/auth/password-reset-confirm/
+Content-Type: application/json
+
+{
+  "new_password": "NewStrongPassword123!"
+}
+
+### 9. Logout (Blacklist Refresh Token)
+# @name logoutUser
+POST {{baseUrl}}/auth/logout/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "refresh": "{{refreshToken}}"
+}
+

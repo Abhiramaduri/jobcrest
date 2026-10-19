@@ -28,23 +28,22 @@ def job_category_list_view(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def job_skills_list_view(request):
-    skills=SkillSerializer.all()
-    return Response(SkillSerializer(skills,many=True).data)
+    skills = Skill.objects.all()
+    return Response(SkillSerializer(skills, many=True).data)
 
 #--------------------------------------- Job List / Create -------------------------------------------------------------
 
-@api_view('GET','POST')
+@api_view(['GET','POST'])
 @permission_classes([AllowAny])
 def job_list_create_view(request):
     if request.method=='GET':
         queryset=Job.objects.filter(status='published').select_related('company','category')
-        Job.objects.filter(status='published').select_related('company','category')
         job_filter=JobFilter(request.GET,queryset=queryset)
         queryset=job_filter.qs
         search_term=request.GET.get('search')
 
         if search_term:
-            queryset=queryset.filter(Q(title_icontains=search_term)|Q(description_icontains=search_term))
+            queryset=queryset.filter(Q(title__icontains=search_term)|Q(description__icontains=search_term))
         ordering=request.GET.get('ordering','-created_at')
         queryset=queryset.order_by(ordering)
 
@@ -74,7 +73,7 @@ def job_detail_view(request,slug):
 
     if request.method=='GET':
         job.views_count +=1
-        job.save(update_fields=['view_count'])
+        job.save(update_fields=['views_count'])
         return Response(JobDetailSerializer(job).data)
     if not request.user.is_authenticated:
         return Response({
@@ -146,12 +145,12 @@ def my_postings_view(request):
 @permission_classes([IsAuthenticated,isJobSeeker])
 def recommended_jobs_view(request):
     profile=get_object_or_404(JobSeekerProfile,user=request.user)
-    skills_ids=profile.skills.values_list('skill_id',flat=True)[1,2,3,4,5]
+    skills_ids=list(profile.skills.values_list('skill_id',flat=True)[:5])
 
     if not skills_ids:
         return Response([])
     jobs=Job.objects.filter(
-        status='published',skill_required_id_in=skills_ids
+        status='published',skill_required__in=skills_ids
     ).distinct().order_by('-created_at')
 
     return Response(JobListSerializer(jobs,many=True).data)
@@ -167,7 +166,7 @@ def saved_jobs_list_view(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated,isJobSeeker])
-def sav_job_view(request,slug):
+def save_job_view(request,slug):
     job=get_object_or_404(Job,slug=slug)
     profile=get_object_or_404(JobSeekerProfile,user=request.user)
 
@@ -177,6 +176,8 @@ def sav_job_view(request,slug):
             "detail":"Job already saved"
         },status=status.HTTP_400_BAD_REQUEST)
     return Response(SavedJobSerializer(saved).data,status=status.HTTP_201_CREATED)
+
+sav_job_view = save_job_view
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated,isJobSeeker])

@@ -25,7 +25,7 @@ class Company(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            self.slug = slugify(self.name)[:50].rstrip('-')
         super().save(*args, **kwargs)
 
     def __str__(self):

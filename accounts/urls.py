@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 
-urlpatterns={
+urlpatterns = [
     #Auth
     path('auth/register/',views.register_view,name='register'),
     path('auth/login/',views.login_view,name='login'),
@@ -25,7 +25,7 @@ urlpatterns={
 
     #Skills
     path('jobseeker/skills/',views.skill_list_create_view,name='skills-list-create'),
-    path('jobseeker/skills/<int:pk>/',views.skill_list_create_view,name='skills-list-create'),
+    path('jobseeker/skills/<int:pk>/',views.skill_delete_view,name='skill-delete'),
     path('skills/',views.all_skills_list_view,name='all-skills')
-    }   
+]   
 
