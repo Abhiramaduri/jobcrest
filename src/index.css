@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-wine-dark: #58111A;
+  --color-wine-burgundy: #72222D;
+  --color-wine-hover: #661922;
+  --color-wine-tint: #F9EFF1;
+  --color-sand-canvas: #F8F6F0;
+  --color-sand-surface: #FFFFFF;
+  --color-sand-border: #E8E2D5;
+  --color-sand-muted: #D6CEBF;
+  --color-text-charcoal: #231F20;
+  --color-text-muted: #69615E;
+  --color-success: #2D6A4F;
+  --color-warning: #B57614;
+  --color-error: #9E2A2B;
+}
+
+body {
+  background-color: var(--color-sand-canvas);
+  color: var(--color-text-charcoal);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F8F6F0;
+}
+::-webkit-scrollbar-thumb {
+  background: #D6CEBF;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #72222D;
+}
+
+/* Glassmorphism subtle surfaces */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(232, 226, 213, 0.8);
+}
+
+.wine-gradient-bg {
+  background: linear-gradient(135deg, #58111A 0%, #72222D 60%, #400B13 100%);
+}
+
+.wine-subtle-glow {
+  box-shadow: 0 10px 30px -8px rgba(88, 17, 26, 0.12);
+}
+
+.sand-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E8E2D5;
+  border-radius: 1rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sand-card:hover {
+  border-color: #72222D;
+  box-shadow: 0 12px 32px -10px rgba(88, 17, 26, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Animated Shimmer skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #E8E2D5 25%, #F8F6F0 50%, #E8E2D5 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}

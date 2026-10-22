@@ -179,7 +179,7 @@ def save_job_view(request,slug):
 
 sav_job_view = save_job_view
 
-@api_view(['DELETE'])
+@api_view(['POST', 'DELETE'])
 @permission_classes([IsAuthenticated,isJobSeeker])
 def unsave_job_view(request,slug):
     job=get_object_or_404(Job,slug=slug)

@@ -1,6 +1,55 @@
+# ==========================================
+# Python & Django
+# ==========================================
 venv/
+env/
+.venv/
+ENV/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.sqlite3
 db.sqlite3
+db.sqlite3-journal
+
+# Django media & static collection
+media/
+staticfiles/
+
+# Logs
+*.log
+local_settings.py
 .env
+.env.*
+!.env.example
+
+# ==========================================
+# Node.js & Frontend (Vite + React)
+# ==========================================
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Vite cache
+.vite/
+
+# NPM / Yarn / PNPM logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==========================================
+# IDEs & OS Files
+# ==========================================
 .vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db

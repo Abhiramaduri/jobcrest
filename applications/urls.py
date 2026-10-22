@@ -3,8 +3,10 @@ from . import views
 
 urlpatterns = [
     path('application/', views.apply_to_job_view, name='apply-to-job'),
+    path('applications/', views.apply_to_job_view, name='apply-to-job-plural'),
     path('applications/apply/', views.apply_to_job_view, name='apply-to-job-alt'),
     path('applications/my-application/', views.my_application_view, name='my-applications'),
+    path('applications/my-applications/', views.my_application_view, name='my-applications-plural'),
     path('applications/job/<int:job_id>/', views.applications_by_job_view, name='application-by-job'),
     path('applications/<int:pk>/', views.application_detail_view, name='application-detail'),
     path('aplications/<int:pk>/', views.application_detail_view, name='application-detail-typo-compat'),

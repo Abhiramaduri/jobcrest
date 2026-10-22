@@ -6,5 +6,6 @@ urlpatterns=[
     path('companies/<slug:slug>/',views.company_detail_view,name='company-detail'),
     # path('companies/<slug:slug>/jobs/', views.company_jobs_view, name='company-jobs'),
     path('companies/<slug:slug>/recruiters/',views.company_recruiters_view,name='company-recruiters'),
-    path('employers/profile/',views.employer_profile_view,name='employer-profile')
+    path('employers/profile/',views.employer_profile_view,name='employer-profile'),
+    path('employer/profile/',views.employer_profile_view,name='employer-profile-singular')
 ]
