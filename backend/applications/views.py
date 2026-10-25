@@ -142,11 +142,12 @@ def interview_create_view(request):
     serializer.is_valid(raise_exception=True)
     interview = serializer.save()
     
+    old_status = application.status
     application.status = 'interview_scheduled'
     application.save(update_fields=['status', 'updated_at'])
     ApplicationStatusHistory.objects.create(
         application=application,
-        old_status=application.status,
+        old_status=old_status,
         new_status='interview_scheduled',
         changed_by=request.user,
         notes='Interview Scheduled.'

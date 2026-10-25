@@ -43,7 +43,9 @@ class ApplicationStatusHistory(models.Model):
 class Interview(models.Model):
     MODE_CHOICE = (
         ('online', 'Online'),
+        ('virtual', 'Virtual'),
         ('in-person', 'In Person'),
+        ('in_person', 'In Person'),
         ('phone', 'Phone'),
     )
 

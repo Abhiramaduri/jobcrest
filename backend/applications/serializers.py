@@ -11,12 +11,30 @@ class ApplicationStatusHistorySerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'changed_by', 'changed_at')
 
 class InterviewSerializer(serializers.ModelSerializer):
+    job_title = serializers.CharField(source='application.job.title', read_only=True)
+    company_name = serializers.CharField(source='application.job.company.name', read_only=True)
+    applicant_name = serializers.CharField(source='application.applicant.full_name', read_only=True)
+    meeting_link = serializers.CharField(max_length=500, required=False, allow_blank=True, default='')
+    interview_notes = serializers.CharField(required=False, allow_blank=True, default='')
+    result = serializers.CharField(max_length=20, required=False, default='pending')
+
     class Meta:
         model = Interview
         fields = (
-            'id', 'application', 'scheduled_at', 'mode', 'meeting_link', 'interview_notes', 'result'
+            'id', 'application', 'scheduled_at', 'mode', 'meeting_link', 'interview_notes', 'result',
+            'job_title', 'company_name', 'applicant_name'
         )
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'job_title', 'company_name', 'applicant_name')
+
+    def validate_mode(self, value):
+        val = str(value).lower().strip()
+        if val in ('virtual', 'online'):
+            return 'virtual'
+        elif val in ('in-person', 'in_person'):
+            return 'in_person'
+        elif val == 'phone':
+            return 'phone'
+        return val
 
 class ApplicationListSerializer(serializers.ModelSerializer):
     job_title = serializers.CharField(source='job.title', read_only=True)

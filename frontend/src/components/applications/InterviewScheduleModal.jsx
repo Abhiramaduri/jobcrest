@@ -41,8 +41,8 @@ export const InterviewScheduleModal = ({
         application: application.id,
         scheduled_at: new Date(data.scheduled_at).toISOString(),
         mode: data.mode,
-        meeting_link: data.meeting_link,
-        interview_notes: data.interview_notes,
+        meeting_link: data.meeting_link || '',
+        interview_notes: data.interview_notes || '',
       });
 
       toast.success('Interview successfully scheduled!');
@@ -51,7 +51,18 @@ export const InterviewScheduleModal = ({
       onClose();
     } catch (err) {
       console.error('Failed to schedule interview:', err);
-      toast.error(err?.response?.data?.detail || 'Failed to schedule interview.');
+      const resData = err?.response?.data;
+      let errorMsg = 'Failed to schedule interview.';
+      if (resData) {
+        if (typeof resData.detail === 'string') {
+          errorMsg = resData.detail;
+        } else if (typeof resData === 'object') {
+          errorMsg = Object.entries(resData)
+            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+            .join(' | ');
+        }
+      }
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
