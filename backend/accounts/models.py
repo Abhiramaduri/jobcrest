@@ -70,6 +70,7 @@ class Education(models.Model):
     field_of_study = models.CharField(max_length=255, blank=True)
     start_year = models.PositiveIntegerField()
     end_year = models.PositiveBigIntegerField(blank=True, null=True)
+    is_current = models.BooleanField(default=False)
     grade = models.CharField(max_length=50, blank=True)
 
     def __str__(self):

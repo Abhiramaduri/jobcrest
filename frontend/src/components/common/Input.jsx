@@ -5,6 +5,7 @@ export const Input = forwardRef(({
   error,
   helperText,
   icon: Icon,
+  prefix,
   className = '',
   containerClassName = '',
   id,
@@ -12,6 +13,42 @@ export const Input = forwardRef(({
   ...props
 }, ref) => {
   const inputId = id || props.name || Math.random().toString(36).substring(2, 9);
+  const hasLeading = Boolean(Icon || prefix);
+
+  const renderLeading = () => {
+    if (prefix !== undefined && prefix !== null && prefix !== '') {
+      if (typeof prefix === 'string' || typeof prefix === 'number') {
+        return (
+          <span className="font-semibold text-xs text-wine-deep select-none">
+            {prefix}
+          </span>
+        );
+      }
+      if (React.isValidElement(prefix)) {
+        return prefix;
+      }
+      const PrefixComponent = prefix;
+      return <PrefixComponent className="w-4 h-4" />;
+    }
+
+    if (!Icon) return null;
+
+    if (React.isValidElement(Icon)) {
+      return Icon;
+    }
+
+    if (typeof Icon === 'string' || typeof Icon === 'number') {
+      return (
+        <span className="font-bold text-xs text-ink-charcoal select-none">
+          {Icon}
+        </span>
+      );
+    }
+
+    // Lucide icons and forwardRef components are objects with $$typeof: Symbol(react.forward_ref)
+    const Component = Icon;
+    return <Component className="w-4 h-4" />;
+  };
 
   return (
     <div className={`w-full flex flex-col gap-1.5 ${containerClassName}`}>
@@ -21,9 +58,9 @@ export const Input = forwardRef(({
         </label>
       )}
       <div className="relative flex items-center">
-        {Icon && (
-          <div className="absolute left-3.5 text-ink-subtle pointer-events-none flex items-center justify-center">
-            <Icon className="w-4 h-4" />
+        {hasLeading && (
+          <div className="absolute left-3.5 text-ink-subtle pointer-events-none flex items-center justify-center min-w-[1rem]">
+            {renderLeading()}
           </div>
         )}
         <input
@@ -34,7 +71,7 @@ export const Input = forwardRef(({
             transition-all duration-200 outline-none
             focus:border-wine-deep focus:ring-2 focus:ring-wine-burgundy/15
             disabled:bg-sand-canvas disabled:cursor-not-allowed
-            ${Icon ? 'pl-10' : ''}
+            ${hasLeading ? 'pl-10' : ''}
             ${error ? 'border-status-error focus:border-status-error focus:ring-status-error/15' : ''}
             ${className}`}
           {...props}

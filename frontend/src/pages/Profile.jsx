@@ -40,6 +40,7 @@ export const Profile = () => {
     field_of_study: '',
     start_year: '',
     end_year: '',
+    is_current: false,
     grade: '',
   });
   const [newExp, setNewExp] = useState({
@@ -121,10 +122,19 @@ export const Profile = () => {
   const handleAddEducation = async (e) => {
     e.preventDefault();
     try {
-      await profileApi.addEducation(newEdu);
+      const payload = {
+        degree: newEdu.degree,
+        institution: newEdu.institution,
+        field_of_study: newEdu.field_of_study,
+        start_year: Number(newEdu.start_year),
+        end_year: newEdu.is_current ? null : (newEdu.end_year ? Number(newEdu.end_year) : null),
+        is_current: Boolean(newEdu.is_current),
+        grade: newEdu.grade,
+      };
+      await profileApi.addEducation(payload);
       toast.success('Education added');
       setIsAddEduOpen(false);
-      setNewEdu({ degree: '', institution: '', field_of_study: '', start_year: '', end_year: '', grade: '' });
+      setNewEdu({ degree: '', institution: '', field_of_study: '', start_year: '', end_year: '', is_current: false, grade: '' });
       const edus = await profileApi.getEducation();
       setEducations(edus);
     } catch {
@@ -450,11 +460,28 @@ export const Profile = () => {
             <Input
               label="End Year (or Expected)"
               type="number"
-              placeholder="2024"
-              value={newEdu.end_year}
+              placeholder={newEdu.is_current ? 'Present' : '2024'}
+              disabled={newEdu.is_current}
+              value={newEdu.is_current ? '' : newEdu.end_year}
               onChange={(e) => setNewEdu({ ...newEdu, end_year: e.target.value })}
             />
           </div>
+          <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-ink-charcoal select-none">
+            <input
+              type="checkbox"
+              checked={newEdu.is_current}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setNewEdu({
+                  ...newEdu,
+                  is_current: checked,
+                  end_year: checked ? '' : newEdu.end_year,
+                });
+              }}
+              className="w-4 h-4 rounded text-wine-deep accent-wine-deep cursor-pointer"
+            />
+            <span>Currently studying here</span>
+          </label>
           <Input
             label="Grade / GPA"
             placeholder="e.g. 3.8 / 4.0 or 8.5 CGPA"

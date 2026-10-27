@@ -19,6 +19,7 @@ import Badge, { StatusBadge } from '../components/common/Badge';
 import Modal from '../components/common/Modal';
 import ApplicantDetailModal from '../components/applications/ApplicantDetailModal';
 import InterviewScheduleModal from '../components/applications/InterviewScheduleModal';
+import { formatSalaryWithCurrency } from '../utils/currencies';
 import toast from 'react-hot-toast';
 
 export const EmployerJobs = () => {
@@ -189,8 +190,16 @@ export const EmployerJobs = () => {
                   {job.title}
                 </Link>
 
-                <div className="flex flex-wrap items-center gap-4 text-xs text-ink-muted">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
                   <span>{job.location || 'Location Not Specified'}</span>
+                  {(job.salary_min || job.salary_max) && (
+                    <>
+                      <span>•</span>
+                      <span className="font-semibold text-wine-deep">
+                        {formatSalaryWithCurrency(job.salary_min, job.salary_max, job.salary_currency)}
+                      </span>
+                    </>
+                  )}
                   <span>•</span>
                   <span>
                     Created: {new Date(job.created_at).toLocaleDateString()}

@@ -51,7 +51,7 @@ class JobSeekerSkillSerializer(serializers.ModelSerializer):
 class EducationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Education
-        fields = ('id', 'degree', 'institution', 'field_of_study', 'start_year', 'end_year', 'grade')
+        fields = ('id', 'degree', 'institution', 'field_of_study', 'start_year', 'end_year', 'is_current', 'grade')
 
 class ExperienceSerializer(serializers.ModelSerializer):
     class Meta:

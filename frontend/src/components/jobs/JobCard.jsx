@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 import {
   MapPin,
   Briefcase,
-  DollarSign,
   Bookmark,
   Calendar,
   Building2,
   Sparkles,
 } from 'lucide-react';
 import Badge from '../common/Badge';
+import { getCurrency, formatSalaryWithCurrency } from '../../utils/currencies';
 
 export const JobCard = ({
   job,
@@ -20,12 +20,9 @@ export const JobCard = ({
   if (!job) return null;
 
   const company = job.company || {};
-  const formattedSalary =
-    job.salary_min && job.salary_max
-      ? `${job.salary_currency || '₹'} ${Number(job.salary_min).toLocaleString()} - ${Number(job.salary_max).toLocaleString()}`
-      : job.salary_min
-      ? `${job.salary_currency || '₹'} ${Number(job.salary_min).toLocaleString()}+`
-      : 'Competitive';
+  const currencyInfo = getCurrency(job.salary_currency);
+  const SalaryIcon = currencyInfo.icon;
+  const formattedSalary = formatSalaryWithCurrency(job.salary_min, job.salary_max, job.salary_currency);
 
   const postedDate = job.created_at
     ? new Date(job.created_at).toLocaleDateString('en-US', {
@@ -137,7 +134,13 @@ export const JobCard = ({
       {/* Bottom Footer: Salary and Action */}
       <div className="flex items-center justify-between gap-2 mt-5 pt-4 border-t border-sand-border/70 text-xs">
         <div className="flex items-center gap-1.5 text-wine-deep font-bold">
-          <DollarSign className="w-4 h-4 text-wine-burgundy" />
+          {SalaryIcon ? (
+            <SalaryIcon className="w-4 h-4 text-wine-burgundy flex-shrink-0" />
+          ) : (
+            <span className="text-xs font-bold text-wine-burgundy">
+              {currencyInfo.symbol}
+            </span>
+          )}
           <span>{formattedSalary}</span>
         </div>
 

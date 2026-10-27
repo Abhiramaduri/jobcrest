@@ -17,6 +17,8 @@ import jobsApi from '../api/jobsApi';
 import profileApi from '../api/profileApi';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
+import CurrencySelector from '../components/common/CurrencySelector';
+import { getCurrency, formatSalaryWithCurrency } from '../utils/currencies';
 import toast from 'react-hot-toast';
 
 export const JobPostWizard = () => {
@@ -31,6 +33,7 @@ export const JobPostWizard = () => {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -52,6 +55,12 @@ export const JobPostWizard = () => {
       status: 'published',
     },
   });
+
+  const selectedCurrencyCode = watch('salary_currency') || 'INR';
+  const selectedCurrency = getCurrency(selectedCurrencyCode);
+  const SalaryCurrencyIcon = selectedCurrency.icon;
+  const currentSalaryMin = watch('salary_min');
+  const currentSalaryMax = watch('salary_max');
 
   useEffect(() => {
     Promise.all([
@@ -232,35 +241,92 @@ export const JobPostWizard = () => {
           </div>
 
           {/* Salary Compensation */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Input
-              label="Minimum Salary (Annual)"
-              type="number"
-              placeholder="e.g. 1500000"
-              icon={DollarSign}
-              {...register('salary_min')}
-            />
-            <Input
-              label="Maximum Salary (Annual)"
-              type="number"
-              placeholder="e.g. 3000000"
-              icon={DollarSign}
-              {...register('salary_max')}
-            />
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
-                Currency
-              </label>
-              <select
-                {...register('salary_currency')}
-                className="w-full bg-white border border-sand-border rounded-xl px-3.5 py-2.5 text-sm text-ink-charcoal focus:outline-none focus:border-wine-deep"
-              >
-                <option value="INR">INR (₹)</option>
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-              </select>
+          <div className="space-y-4 p-5 sm:p-6 bg-sand-canvas/40 rounded-2xl border border-sand-border/80">
+            <div>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-wine-deep flex items-center gap-2">
+                  <span>Compensation & Currency</span>
+                  <span className="text-[10px] font-semibold text-wine-burgundy bg-wine-tint px-2 py-0.5 rounded-full border border-wine-burgundy/15">
+                    Selected: {selectedCurrency.name} ({selectedCurrency.code} {selectedCurrency.symbol})
+                  </span>
+                </h3>
+                <span className="text-[11px] text-ink-muted">
+                  Default: INR (₹) • Switch to USD ($), EUR (€), GBP (£), AED, and 25+ more
+                </span>
+              </div>
+              <p className="text-xs text-ink-muted mt-1">
+                Select your preferred remuneration currency. Input icons and candidate view adapt dynamically.
+              </p>
             </div>
+
+            {/* Currency Selector with Quick-Pills and Searchable Menu */}
+            <CurrencySelector
+              value={selectedCurrencyCode}
+              onChange={(newCode) => {
+                setValue('salary_currency', newCode, { shouldValidate: true, shouldDirty: true });
+              }}
+              register={register}
+              label="Compensation Currency"
+            />
+
+            {/* Salary Min & Max with Dynamic Leading Icon/Symbol and Currency Placeholder */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <Input
+                label={`Minimum Salary (Annual in ${selectedCurrency.code})`}
+                type="number"
+                placeholder={
+                  selectedCurrencyCode === 'INR'
+                    ? 'e.g. 1500000'
+                    : selectedCurrencyCode === 'USD'
+                    ? 'e.g. 120000'
+                    : selectedCurrencyCode === 'EUR'
+                    ? 'e.g. 85000'
+                    : selectedCurrencyCode === 'GBP'
+                    ? 'e.g. 75000'
+                    : 'e.g. 100000'
+                }
+                icon={SalaryCurrencyIcon}
+                prefix={!SalaryCurrencyIcon ? selectedCurrency.symbol : undefined}
+                helperText={`Minimum bracket in ${selectedCurrency.code} (${selectedCurrency.symbol})`}
+                {...register('salary_min')}
+              />
+              <Input
+                label={`Maximum Salary (Annual in ${selectedCurrency.code})`}
+                type="number"
+                placeholder={
+                  selectedCurrencyCode === 'INR'
+                    ? 'e.g. 3000000'
+                    : selectedCurrencyCode === 'USD'
+                    ? 'e.g. 180000'
+                    : selectedCurrencyCode === 'EUR'
+                    ? 'e.g. 130000'
+                    : selectedCurrencyCode === 'GBP'
+                    ? 'e.g. 110000'
+                    : 'e.g. 200000'
+                }
+                icon={SalaryCurrencyIcon}
+                prefix={!SalaryCurrencyIcon ? selectedCurrency.symbol : undefined}
+                helperText={`Maximum bracket in ${selectedCurrency.code} (${selectedCurrency.symbol})`}
+                {...register('salary_max')}
+              />
+            </div>
+
+            {/* Real-time Candidate View Preview */}
+            {(currentSalaryMin || currentSalaryMax) && (
+              <div className="flex items-center justify-between flex-wrap gap-2 px-4 py-3 bg-white border border-sand-border rounded-xl text-xs shadow-wine-xs animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-ink-muted">Applicant Preview:</span>
+                  <span className="font-bold text-wine-deep text-sm">
+                    {formatSalaryWithCurrency(currentSalaryMin, currentSalaryMax, selectedCurrencyCode)}
+                  </span>
+                  <span className="text-ink-subtle">/ year</span>
+                </div>
+                <span className="text-[11px] font-semibold text-wine-burgundy bg-sand-canvas px-2.5 py-1 rounded-lg border border-sand-border flex items-center gap-1.5">
+                  <span className="text-sm">{selectedCurrency.flag}</span>
+                  <span>{selectedCurrency.country} ({selectedCurrency.code})</span>
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Application Deadline */}

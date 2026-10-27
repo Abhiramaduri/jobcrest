@@ -3,7 +3,6 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   MapPin,
   Briefcase,
-  DollarSign,
   Calendar,
   Building2,
   Globe,
@@ -20,6 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
 import ApplyModal from '../components/jobs/ApplyModal';
+import { getCurrency, formatSalaryWithCurrency } from '../utils/currencies';
 import toast from 'react-hot-toast';
 
 export const JobDetail = () => {
@@ -136,12 +136,8 @@ export const JobDetail = () => {
   }
 
   const company = job.company || {};
-  const formattedSalary =
-    job.salary_min && job.salary_max
-      ? `${job.salary_currency || '₹'} ${Number(job.salary_min).toLocaleString()} - ${Number(job.salary_max).toLocaleString()}`
-      : job.salary_min
-      ? `${job.salary_currency || '₹'} ${Number(job.salary_min).toLocaleString()}+`
-      : 'Competitive';
+  const currencyInfo = getCurrency(job.salary_currency);
+  const formattedSalary = formatSalaryWithCurrency(job.salary_min, job.salary_max, job.salary_currency);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -303,7 +299,14 @@ export const JobDetail = () => {
             <div className="space-y-3.5 text-xs divide-y divide-sand-border/60">
               <div className="pt-2 flex items-center justify-between">
                 <span className="text-ink-muted">Compensation</span>
-                <span className="font-bold text-wine-deep">{formattedSalary}</span>
+                <div className="flex items-center gap-1.5 font-bold text-wine-deep">
+                  <span>{formattedSalary}</span>
+                  {job.salary_currency && (
+                    <span className="text-[10px] font-semibold text-wine-burgundy bg-wine-tint px-1.5 py-0.5 rounded border border-wine-burgundy/15">
+                      {currencyInfo.code}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="pt-3.5 flex items-center justify-between">
                 <span className="text-ink-muted">Employment Type</span>
