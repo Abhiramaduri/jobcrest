@@ -110,11 +110,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
-        'NAME': config('DB_NAME', default='JobCrest'),
+        'NAME': config('DB_NAME', default='postgres'),
         'USER': config('DB_USER', default='postgres'),
         'PASSWORD': config('DB_PASSWORD', default=''),
         'HOST': config('DB_HOST', default='localhost'),
         'PORT': config('DB_PORT', default='5432'),
+        'OPTIONS': {
+            'sslmode': config('DB_SSLMODE', default='require'),
+        } if config('DB_SSLMODE', default='require') else {},
     }
 }
 
