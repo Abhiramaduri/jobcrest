@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import random
+from django.utils import timezone
+from datetime import timedelta
 
 
 class User(AbstractUser):
@@ -17,6 +20,35 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+
+class OTPVerification(models.Model):
+    """Stores OTP for email verification and password reset."""
+    PURPOSE_CHOICES = (
+        ('registration', 'Registration'),
+        ('password_reset', 'Password Reset'),
+    )
+    email = models.EmailField()
+    otp = models.CharField(max_length=6)
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=10)
+
+    @classmethod
+    def generate_otp(cls, email, purpose):
+        """Delete old OTPs and create a fresh 6-digit one."""
+        cls.objects.filter(email=email, purpose=purpose, is_used=False).delete()
+        otp_code = str(random.randint(100000, 999999))
+        return cls.objects.create(email=email, otp=otp_code, purpose=purpose)
+
+    def __str__(self):
+        return f"{self.email} — {self.purpose} — {self.otp}"
 
 
 class JobSeekerProfile(models.Model):

@@ -1,8 +1,13 @@
 import axiosInstance from './axiosInstance';
 
 export const authApi = {
+  // ── Registration OTP ──
+  sendRegistrationOtp: async (email) => {
+    const response = await axiosInstance.post('/auth/register/send-otp/', { email });
+    return response.data;
+  },
+
   register: async (payload) => {
-    // Normalizes user_type to 'jobseeker' or 'employer'
     const role = payload.role === 'job_seeker' || payload.role === 'jobseeker' ? 'jobseeker' : 'employer';
     const body = {
       username: payload.username,
@@ -11,6 +16,7 @@ export const authApi = {
       password2: payload.passwordConfirm || payload.password,
       user_type: role,
       phone_number: payload.phone_number || payload.phone || '',
+      otp: payload.otp || '',
     };
     const response = await axiosInstance.post('/auth/register/', body);
     return response.data;
@@ -26,9 +32,7 @@ export const authApi = {
 
   logout: async (refreshToken) => {
     if (!refreshToken) return null;
-    const response = await axiosInstance.post('/auth/logout/', {
-      refresh: refreshToken,
-    });
+    const response = await axiosInstance.post('/auth/logout/', { refresh: refreshToken });
     return response.data;
   },
 
@@ -37,13 +41,21 @@ export const authApi = {
     return response.data;
   },
 
+  // ── Forgot Password ──
   passwordReset: async (email) => {
     const response = await axiosInstance.post('/auth/password-reset/', { email });
     return response.data;
   },
 
-  passwordResetConfirm: async (payload) => {
-    const response = await axiosInstance.post('/auth/password-reset-confirm/', payload);
+  passwordResetVerifyOtp: async ({ email, otp }) => {
+    const response = await axiosInstance.post('/auth/password-reset/verify-otp/', { email, otp });
+    return response.data;
+  },
+
+  passwordResetConfirm: async ({ email, otp, new_password, confirm_password }) => {
+    const response = await axiosInstance.post('/auth/password-reset-confirm/', {
+      email, otp, new_password, confirm_password,
+    });
     return response.data;
   },
 };
