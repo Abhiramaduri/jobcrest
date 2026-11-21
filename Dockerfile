@@ -20,12 +20,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY backend/ .
 
-# Collect static files
-RUN python manage.py collectstatic --no-input
+# Copy and prepare entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Expose port
 EXPOSE 8000
 
-# Start gunicorn
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2"]
-
+# Run entrypoint: migrate + collectstatic + gunicorn
+ENTRYPOINT ["/entrypoint.sh"]
