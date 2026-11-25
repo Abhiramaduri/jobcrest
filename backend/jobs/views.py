@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.filters import SearchFilter,OrderingFilter
+from rest_framework.settings import api_settings
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
@@ -33,6 +34,12 @@ def job_skills_list_view(request):
 
 #--------------------------------------- Job List / Create -------------------------------------------------------------
 
+class _JobOrderingConfig:
+    """Strict whitelist for job listing ordering via DRF OrderingFilter."""
+    ordering_fields = ('created_at', 'salary_min', 'salary_max', 'title', 'views_count')
+    ordering = ('-created_at',)
+
+
 @api_view(['GET','POST'])
 @permission_classes([AllowAny])
 def job_list_create_view(request):
@@ -44,8 +51,16 @@ def job_list_create_view(request):
 
         if search_term:
             queryset=queryset.filter(Q(title__icontains=search_term)|Q(description__icontains=search_term))
-        ordering=request.GET.get('ordering','-created_at')
-        queryset=queryset.order_by(ordering)
+
+        queryset = OrderingFilter().filter_queryset(request, queryset, _JobOrderingConfig)
+
+        paginator_class = api_settings.DEFAULT_PAGINATION_CLASS
+        if paginator_class is not None:
+            paginator = paginator_class()
+            page = paginator.paginate_queryset(queryset, request)
+            if page is not None:
+                serializer = JobListSerializer(page, many=True)
+                return paginator.get_paginated_response(serializer.data)
 
         return Response(JobListSerializer(queryset,many=True).data)
     

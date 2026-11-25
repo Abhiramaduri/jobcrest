@@ -1,9 +1,11 @@
 from django.db import models
 from django.utils.text import slugify
 from accounts.models import User
+import uuid
 
 
 class Company(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     SIZE_CHOICES = (
         ('1-10', '1-10'),
         ('11-50', '11-50'),
@@ -33,6 +35,7 @@ class Company(models.Model):
 
 
 class EmployerProfile(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employer_profile')
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='employers')
     designation = models.CharField(max_length=255, blank=True)

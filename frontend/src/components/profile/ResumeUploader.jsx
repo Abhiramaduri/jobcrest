@@ -11,13 +11,16 @@ export const ResumeUploader = ({ resumeUrl, onUploadSuccess }) => {
   const handleFile = async (file) => {
     if (!file) return;
 
-    if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
-      toast.error('Only PDF documents are supported for resumes.');
+    const allowedExtensions = ['pdf', 'doc', 'docx'];
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+
+    if (!fileExt || !allowedExtensions.includes(fileExt)) {
+      toast.error('Only PDF, DOC, and DOCX documents are permitted for resumes.');
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size exceeds 10MB limit.');
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size exceeds the 5MB limit.');
       return;
     }
 
@@ -119,10 +122,10 @@ export const ResumeUploader = ({ resumeUrl, onUploadSuccess }) => {
           </div>
           <div>
             <p className="text-xs font-bold text-ink-charcoal">
-              {isUploading ? 'Uploading Resume...' : 'Drop your PDF resume here, or browse'}
+              {isUploading ? 'Uploading Resume...' : 'Drop your resume (PDF, DOC, DOCX) here, or browse'}
             </p>
             <p className="text-[11px] text-ink-subtle mt-0.5">
-              Supports PDF documents up to 10MB
+              Supports PDF, DOC, and DOCX documents up to 5MB
             </p>
           </div>
 
@@ -132,7 +135,7 @@ export const ResumeUploader = ({ resumeUrl, onUploadSuccess }) => {
             </span>
             <input
               type="file"
-              accept=".pdf,application/pdf"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={handleChange}
               disabled={isUploading}
               className="hidden"

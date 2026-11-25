@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
+    'storages',
     'accounts',
     'applications',
     'companies',
@@ -53,8 +54,62 @@ INSTALLED_APPS = [
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
+
+# ==========================================
+# Media & Cloud Storage (S3 / Supabase Storage / Cloudinary via django-storages)
+# ==========================================
+USE_S3 = config('USE_S3', default=False, cast=bool)
+AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default=config('SUPABASE_STORAGE_BUCKET_NAME', default=''))
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+if USE_S3 or AWS_STORAGE_BUCKET_NAME:
+    AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default=config('SUPABASE_ACCESS_KEY_ID', default=''))
+    AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default=config('SUPABASE_SECRET_ACCESS_KEY', default=''))
+    AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='us-east-1')
+    AWS_S3_ENDPOINT_URL = config('AWS_S3_ENDPOINT_URL', default=config('SUPABASE_S3_ENDPOINT_URL', default=None))
+    AWS_S3_CUSTOM_DOMAIN = config('AWS_S3_CUSTOM_DOMAIN', default=None)
+    AWS_S3_SIGNATURE_VERSION = config('AWS_S3_SIGNATURE_VERSION', default='s3v4')
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = config('AWS_QUERYSTRING_AUTH', default=False, cast=bool)
+
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3.S3Storage',
+            'OPTIONS': {
+                'access_key': AWS_ACCESS_KEY_ID,
+                'secret_key': AWS_SECRET_ACCESS_KEY,
+                'bucket_name': AWS_STORAGE_BUCKET_NAME,
+                'region_name': AWS_S3_REGION_NAME,
+                'endpoint_url': AWS_S3_ENDPOINT_URL if AWS_S3_ENDPOINT_URL else None,
+                'custom_domain': AWS_S3_CUSTOM_DOMAIN if AWS_S3_CUSTOM_DOMAIN else None,
+                'file_overwrite': False,
+                'default_acl': None,
+                'signature_version': AWS_S3_SIGNATURE_VERSION,
+                'querystring_auth': AWS_QUERYSTRING_AUTH,
+            },
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3.S3Storage'
+    if AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+    elif AWS_STORAGE_BUCKET_NAME and not AWS_S3_ENDPOINT_URL:
+        MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/"
+else:
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -64,7 +119,49 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': config('THROTTLE_ANON_RATE', default='120/min'),
+        'user': config('THROTTLE_USER_RATE', default='300/min'),
+        'auth_login': config('THROTTLE_AUTH_LOGIN_RATE', default='5/min'),
+        'auth_register': config('THROTTLE_AUTH_REGISTER_RATE', default='5/min'),
+        'auth_password_reset': config('THROTTLE_AUTH_PASSWORD_RESET_RATE', default='3/min'),
+        'auth_otp': config('THROTTLE_AUTH_OTP_RATE', default='5/min'),
+    },
+    'NUM_PROXIES': config('NUM_PROXIES', default=1, cast=int),
 }
+
+# ==========================================
+# Load Balancer & Reverse Proxy Configuration
+# ==========================================
+# When operating behind Render, Nginx, or AWS ALB load balancers, trust proxy headers
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+# ==========================================
+# Caching Configuration (Supports Distributed Redis or In-Memory)
+# ==========================================
+REDIS_URL = config('REDIS_URL', default=None)
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'jobcrest-cache',
+        }
+    }
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -112,29 +209,39 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
-        'NAME': config('DB_NAME', default='postgres'),
-        'USER': config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
-        'OPTIONS': {
-            'sslmode': config('DB_SSLMODE', default='require'),
-        } if config('DB_SSLMODE', default='require') else {},
+_db_engine = config('DB_ENGINE', default='django.db.backends.postgresql')
+_db_name   = config('DB_NAME', default='postgres')
+_db_sslmode = config('DB_SSLMODE', default='')
+
+if _db_engine == 'django.db.backends.sqlite3':
+    # SQLite — just needs NAME (path to db.sqlite3), no host/user/ssl
+    import os as _os
+    DATABASES = {
+        'default': {
+            'ENGINE': _db_engine,
+            'NAME': _os.path.join(BASE_DIR, _db_name),
+        }
     }
-}
+else:
+    # PostgreSQL (Supabase or other)
+    DATABASES = {
+        'default': {
+            'ENGINE': _db_engine,
+            'NAME': _db_name,
+            'USER': config('DB_USER', default='postgres'),
+            'PASSWORD': config('DB_PASSWORD', default=''),
+            'HOST': config('DB_HOST', default='localhost'),
+            'PORT': config('DB_PORT', default='5432'),
+            'OPTIONS': {'sslmode': _db_sslmode} if _db_sslmode else {},
+        }
+    }
 
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 

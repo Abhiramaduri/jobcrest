@@ -1,9 +1,12 @@
 from django.db import models
 from jobs.models import Job
 from accounts.models import JobSeekerProfile, User
+from accounts.validators import validate_resume_file
+import uuid
 
 
 class Application(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     STATUS_CHOICES = (
         ('applied', 'Applied'),
         ('under_review', 'Under Review'),
@@ -12,10 +15,28 @@ class Application(models.Model):
         ('interview_scheduled', 'Interview Scheduled'),
         ('rejected', 'Rejected'),
         ('hired', 'Hired'),
+        ('withdrawn', 'Withdrawn'),
+    )
+    ALLOWED_STATUS_TRANSITIONS = {
+        'applied': ('under_review', 'shortlisted', 'interview_scheduled', 'rejected', 'hired'),
+        'under_review': ('shortlisted', 'interview_scheduled', 'rejected', 'hired'),
+        'shortlisted': ('interview_scheduled', 'rejected', 'hired'),
+        'shortlised': ('interview_scheduled', 'rejected', 'hired'),
+        'interview_scheduled': ('rejected', 'hired'),
+        'rejected': (),
+        'hired': (),
+        'withdrawn': (),
+    }
+    WITHDRAWABLE_STATUSES = (
+        'applied',
+        'under_review',
+        'shortlisted',
+        'shortlised',
+        'interview_scheduled',
     )
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='applications')
     applicant = models.ForeignKey(JobSeekerProfile, on_delete=models.CASCADE, related_name='applications')
-    resume = models.FileField(upload_to='application_resumes/', blank=True, null=True)
+    resume = models.FileField(upload_to='application_resumes/', blank=True, null=True, validators=[validate_resume_file])
     cover_letter = models.TextField(blank=True)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='applied')
     applied_at = models.DateTimeField(auto_now_add=True)
@@ -29,6 +50,7 @@ class Application(models.Model):
 
 
 class ApplicationStatusHistory(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     application = models.ForeignKey(Application, on_delete=models.CASCADE, related_name='history')
     old_status = models.CharField(max_length=30, blank=True)
     new_status = models.CharField(max_length=30)
@@ -41,6 +63,7 @@ class ApplicationStatusHistory(models.Model):
 
 
 class Interview(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     MODE_CHOICE = (
         ('online', 'Online'),
         ('virtual', 'Virtual'),

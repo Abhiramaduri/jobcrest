@@ -1,8 +1,10 @@
 from django.db import models
 from accounts.models import User
+import uuid
 
 
 class Notification(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     TYPE_CHOICE = (
         ('application_update', 'Application Update'),
         ('new_job_match', 'New Job Match'),

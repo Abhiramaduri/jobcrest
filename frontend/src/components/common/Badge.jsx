@@ -51,6 +51,8 @@ export const StatusBadge = ({ status }) => {
       return <Badge variant="success">Hired</Badge>;
     case 'rejected':
       return <Badge variant="error">Rejected</Badge>;
+    case 'withdrawn':
+      return <Badge variant="sand">Withdrawn</Badge>;
     case 'published':
     case 'active':
       return <Badge variant="success">Published</Badge>;

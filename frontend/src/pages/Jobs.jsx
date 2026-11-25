@@ -5,6 +5,8 @@ import {
   Search,
   SlidersHorizontal,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Sparkles,
   ArrowUpDown,
   RotateCcw,
@@ -21,9 +23,16 @@ export const Jobs = () => {
   const { isAuthenticated, isJobSeeker } = useAuth();
 
   const [jobs, setJobs] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrev, setHasPrev] = useState(false);
   const [savedSlugs, setSavedSlugs] = useState(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
+  const pageSize = 20;
+  const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   // Parse filters from searchParams
   const filters = {
@@ -35,15 +44,27 @@ export const Jobs = () => {
     salary_min: searchParams.get('salary_min') || '',
     is_remote: searchParams.get('is_remote') || '',
     ordering: searchParams.get('ordering') || '-created_at',
+    page: currentPage,
   };
 
-  // Fetch jobs whenever filters change
+  // Fetch jobs whenever filters or page change
   useEffect(() => {
     const fetchJobs = async () => {
       setIsLoading(true);
       try {
         const data = await jobsApi.getJobs(filters);
-        setJobs(Array.isArray(data) ? data : (data.results || []));
+        if (Array.isArray(data)) {
+          setJobs(data);
+          setTotalCount(data.length);
+          setHasNext(false);
+          setHasPrev(false);
+        } else {
+          const results = data.results || [];
+          setJobs(results);
+          setTotalCount(typeof data.count === 'number' ? data.count : results.length);
+          setHasNext(Boolean(data.next));
+          setHasPrev(Boolean(data.previous));
+        }
       } catch (err) {
         console.error('Failed to load jobs:', err);
         toast.error('Failed to load jobs');
@@ -77,7 +98,23 @@ export const Jobs = () => {
         next.set(key, val);
       }
     });
+    // Reset to first page whenever filters or ordering change
+    if (!Object.prototype.hasOwnProperty.call(newFilters, 'page')) {
+      next.delete('page');
+    }
     setSearchParams(next);
+  };
+
+  const handlePageChange = (targetPage) => {
+    if (targetPage < 1 || targetPage > totalPages || targetPage === currentPage) return;
+    const next = new URLSearchParams(searchParams);
+    if (targetPage === 1) {
+      next.delete('page');
+    } else {
+      next.set('page', String(targetPage));
+    }
+    setSearchParams(next);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleResetFilters = () => {
@@ -127,7 +164,7 @@ export const Jobs = () => {
             Explore Opportunities
           </h1>
           <p className="text-xs sm:text-sm text-ink-muted mt-1">
-            Browse through {jobs.length} curated, high-impact career openings.
+            Browse through {totalCount} curated, high-impact career openings.
           </p>
         </div>
 
@@ -213,6 +250,79 @@ export const Jobs = () => {
                   onToggleSave={handleToggleSave}
                 />
               ))}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-sand-border">
+                  <p className="text-xs text-ink-muted">
+                    Showing{' '}
+                    <span className="font-semibold text-ink-charcoal">
+                      {(currentPage - 1) * pageSize + 1}
+                    </span>
+                    –
+                    <span className="font-semibold text-ink-charcoal">
+                      {Math.min(currentPage * pageSize, totalCount)}
+                    </span>{' '}
+                    of <span className="font-semibold text-ink-charcoal">{totalCount}</span> jobs
+                  </p>
+
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={ChevronLeft}
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={!hasPrev && currentPage <= 1}
+                    >
+                      Prev
+                    </Button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(
+                        (p) =>
+                          p === 1 ||
+                          p === totalPages ||
+                          Math.abs(p - currentPage) <= 1
+                      )
+                      .reduce((acc, p, idx, arr) => {
+                        if (idx > 0 && p - arr[idx - 1] > 1) {
+                          acc.push('ellipsis-' + p);
+                        }
+                        acc.push(p);
+                        return acc;
+                      }, [])
+                      .map((item) =>
+                        typeof item === 'string' ? (
+                          <span key={item} className="px-2 text-xs text-ink-subtle">
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => handlePageChange(item)}
+                            className={`min-w-[34px] h-[34px] px-2.5 rounded-lg text-xs font-semibold transition-colors ${
+                              item === currentPage
+                                ? 'bg-wine-deep text-white shadow-wine-sm'
+                                : 'bg-white border border-sand-border text-ink-charcoal hover:border-wine-burgundy hover:text-wine-deep'
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        )
+                      )}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={!hasNext && currentPage >= totalPages}
+                    >
+                      Next <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -1,16 +1,24 @@
 from rest_framework import serializers
+from django.utils import timezone
 from .models import Application, ApplicationStatusHistory, Interview
+from jobs.models import Job
 from jobs.serializers import JobListSerializer
+from accounts.models import JobSeekerProfile
+from accounts.resume_security import generate_signed_resume_url
+from accounts.lookup import FlexibleUUIDRelatedField
 
 class ApplicationStatusHistorySerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='uuid', read_only=True)
     changed_by_username = serializers.CharField(source='changed_by.username', read_only=True)
 
     class Meta:
         model = ApplicationStatusHistory
-        fields = ('id', 'old_status', 'new_status', 'changed_by', 'changed_by_username', 'changed_at', 'notes')
-        read_only_fields = ('id', 'changed_by', 'changed_at')
+        fields = ('id', 'uuid', 'old_status', 'new_status', 'changed_by', 'changed_by_username', 'changed_at', 'notes')
+        read_only_fields = ('id', 'uuid', 'changed_by', 'changed_at')
 
 class InterviewSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='uuid', read_only=True)
+    application = FlexibleUUIDRelatedField(model=Application)
     job_title = serializers.CharField(source='application.job.title', read_only=True)
     company_name = serializers.CharField(source='application.job.company.name', read_only=True)
     applicant_name = serializers.CharField(source='application.applicant.full_name', read_only=True)
@@ -21,10 +29,10 @@ class InterviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Interview
         fields = (
-            'id', 'application', 'scheduled_at', 'mode', 'meeting_link', 'interview_notes', 'result',
+            'id', 'uuid', 'application', 'scheduled_at', 'mode', 'meeting_link', 'interview_notes', 'result',
             'job_title', 'company_name', 'applicant_name'
         )
-        read_only_fields = ('id', 'job_title', 'company_name', 'applicant_name')
+        read_only_fields = ('id', 'uuid', 'job_title', 'company_name', 'applicant_name')
 
     def validate_mode(self, value):
         val = str(value).lower().strip()
@@ -37,6 +45,9 @@ class InterviewSerializer(serializers.ModelSerializer):
         return val
 
 class ApplicationListSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='uuid', read_only=True)
+    job = serializers.UUIDField(source='job.uuid', read_only=True)
+    applicant = serializers.UUIDField(source='applicant.uuid', read_only=True)
     job_title = serializers.CharField(source='job.title', read_only=True)
     company_name = serializers.CharField(source='job.company.name', read_only=True)
     applicant_name = serializers.CharField(source='applicant.full_name', read_only=True)
@@ -44,39 +55,64 @@ class ApplicationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = (
-            'id', 'job', 'job_title', 'company_name', 'applicant', 'applicant_name', 'status', 'applied_at'
+            'id', 'uuid', 'job', 'job_title', 'company_name', 'applicant', 'applicant_name', 'status', 'applied_at'
         )
+        read_only_fields = ('id', 'uuid')
 
 ApplicationListSeralizer = ApplicationListSerializer
 
 class ApplicationDetailSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='uuid', read_only=True)
     job = JobListSerializer(read_only=True)
+    applicant = serializers.UUIDField(source='applicant.uuid', read_only=True)
     applicant_name = serializers.CharField(source='applicant.full_name', read_only=True)
     history = ApplicationStatusHistorySerializer(many=True, read_only=True)
     interviews = InterviewSerializer(many=True, read_only=True)
+    resume = serializers.SerializerMethodField()
+
+    def get_resume(self, obj):
+        if obj.resume:
+            request = self.context.get('request') if isinstance(self.context, dict) else None
+            return generate_signed_resume_url(obj.resume.name, request=request)
+        return None
 
     class Meta:
         model = Application
         fields = (
-            'id', 'job', 'applicant', 'applicant_name', 'resume', 'cover_letter',
+            'id', 'uuid', 'job', 'applicant', 'applicant_name', 'resume', 'cover_letter',
             'status', 'history', 'interviews', 'applied_at', 'updated_at'
         )
-        read_only_fields = ('id', 'applicant', 'applied_at', 'updated_at')
+        read_only_fields = ('id', 'uuid', 'applicant', 'applied_at', 'updated_at')
 
 ApplicationDetailSeralizer = ApplicationDetailSerializer
 
 class ApplicationCreaterSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='uuid', read_only=True)
+    job = FlexibleUUIDRelatedField(model=Job, slug_field='slug')
+
     class Meta:
         model = Application
-        fields = ('id', 'job', 'resume', 'cover_letter')
-        read_only_fields = ('id',)
+        fields = ('id', 'uuid', 'job', 'resume', 'cover_letter')
+        read_only_fields = ('id', 'uuid')
 
     def validate(self, attrs):
         request = self.context['request']
         job = attrs['job']
-        profile = getattr(request.user, 'jobseeker_profile', None)
+
+        if job.status != 'published':
+            raise serializers.ValidationError({
+                'job': f"This job is not accepting applications (status: {job.status})."
+            })
+
+        if job.application_deadline and job.application_deadline < timezone.localdate():
+            raise serializers.ValidationError({
+                'job': "The application deadline for this job has passed."
+            })
+
+        profile = JobSeekerProfile.objects.filter(user=request.user).first()
         if profile and Application.objects.filter(job=job, applicant=profile).exists():
-            raise serializers.ValidationError("You have already applied to this job")
+            raise serializers.ValidationError("You have already applied to this job.")
+
         return attrs
 
 ApplicationCreateSerializer = ApplicationCreaterSerializer
@@ -87,3 +123,16 @@ class ApplicationStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = ('status', 'notes')
+
+    def validate_status(self, value):
+        if value == 'withdrawn':
+            raise serializers.ValidationError("Employers cannot set status to 'withdrawn'.")
+        if self.instance is not None:
+            old_status = self.instance.status
+            allowed = Application.ALLOWED_STATUS_TRANSITIONS.get(old_status, ())
+            if value not in allowed:
+                allowed_str = ', '.join(allowed) if allowed else 'none (terminal state)'
+                raise serializers.ValidationError(
+                    f"Invalid status transition from '{old_status}' to '{value}'. Allowed transitions: {allowed_str}."
+                )
+        return value

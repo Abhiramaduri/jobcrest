@@ -73,7 +73,11 @@ export const ApplicantDetailModal = ({
       setHistory(histData);
       if (onStatusUpdated) onStatusUpdated();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Failed to update status');
+      const msg =
+        err?.response?.data?.status?.[0] ||
+        err?.response?.data?.detail ||
+        'Failed to update status';
+      toast.error(msg);
     } finally {
       setIsUpdating(false);
     }
@@ -159,54 +163,85 @@ export const ApplicantDetailModal = ({
           )}
 
           {/* Status Update Form */}
-          <form onSubmit={handleStatusChange} className="p-4 bg-wine-tint/30 border border-wine-burgundy/20 rounded-xl space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-wine-deep">
-              Update Candidate Status
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] font-semibold text-ink-muted block mb-1">
-                  Change Pipeline Stage
-                </label>
-                <select
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                  className="w-full bg-white border border-sand-border rounded-xl px-3 py-2 text-xs text-ink-charcoal focus:outline-none focus:border-wine-deep"
+          {['rejected', 'hired', 'withdrawn'].includes(application.status) ? (
+            <div className="p-4 bg-sand-canvas/60 border border-sand-border rounded-xl text-xs text-ink-muted">
+              This application is in a terminal stage (<span className="font-semibold capitalize">{application.status}</span>) and cannot transition further.
+            </div>
+          ) : (
+            <form onSubmit={handleStatusChange} className="p-4 bg-wine-tint/30 border border-wine-burgundy/20 rounded-xl space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-wine-deep">
+                Update Candidate Status
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-ink-muted block mb-1">
+                    Change Pipeline Stage
+                  </label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                    className="w-full bg-white border border-sand-border rounded-xl px-3 py-2 text-xs text-ink-charcoal focus:outline-none focus:border-wine-deep"
+                  >
+                    {(() => {
+                      const allowedMap = {
+                        applied: ['under_review', 'shortlisted', 'interview_scheduled', 'hired', 'rejected'],
+                        under_review: ['shortlisted', 'interview_scheduled', 'hired', 'rejected'],
+                        shortlisted: ['interview_scheduled', 'hired', 'rejected'],
+                        shortlised: ['interview_scheduled', 'hired', 'rejected'],
+                        interview_scheduled: ['hired', 'rejected'],
+                      };
+                      const labels = {
+                        applied: 'Applied',
+                        under_review: 'Under Review',
+                        shortlisted: 'Shortlisted',
+                        interview_scheduled: 'Interview Scheduled',
+                        hired: 'Hired / Offer Extended',
+                        rejected: 'Rejected',
+                      };
+                      const allowed = allowedMap[application.status] || [];
+                      return (
+                        <>
+                          <option value={application.status}>
+                            {labels[application.status] || application.status} (Current)
+                          </option>
+                          {allowed.map((st) => (
+                            <option key={st} value={st}>
+                              {labels[st] || st}
+                            </option>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-ink-muted block mb-1">
+                    Evaluation Note (Internal / Candidate Log)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Cleared technical screening..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full bg-white border border-sand-border rounded-xl px-3 py-2 text-xs text-ink-charcoal focus:outline-none focus:border-wine-deep"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isUpdating}
+                  disabled={newStatus === application.status}
                 >
-                  <option value="applied">Applied</option>
-                  <option value="under_review">Under Review</option>
-                  <option value="interview_scheduled">Interview Scheduled</option>
-                  <option value="hired">Hired / Offer Extended</option>
-                  <option value="rejected">Rejected</option>
-                </select>
+                  Update Status
+                </Button>
               </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-ink-muted block mb-1">
-                  Evaluation Note (Internal / Candidate Log)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Cleared technical screening..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full bg-white border border-sand-border rounded-xl px-3 py-2 text-xs text-ink-charcoal focus:outline-none focus:border-wine-deep"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-1">
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                isLoading={isUpdating}
-                disabled={newStatus === application.status}
-              >
-                Update Status
-              </Button>
-            </div>
-          </form>
+            </form>
+          )}
 
           {/* Status Timeline History */}
           <div className="space-y-3">

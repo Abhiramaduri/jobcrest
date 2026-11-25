@@ -39,7 +39,7 @@ export const Applications = () => {
   }, []);
 
   const handleWithdraw = async (appId) => {
-    if (!window.confirm('Are you sure you want to withdraw this application?')) return;
+    if (!window.confirm('Are you sure you want to withdraw this application? The employer will see it marked as withdrawn.')) return;
     setIsDeletingId(appId);
     try {
       await applicationsApi.withdrawApplication(appId);
@@ -135,14 +135,16 @@ export const Applications = () => {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 flex-shrink-0 self-end md:self-center">
-                  <button
-                    onClick={() => handleWithdraw(app.id)}
-                    disabled={isDeletingId === app.id}
-                    className="p-2 rounded-xl text-ink-subtle hover:text-status-error hover:bg-rose-50 transition-colors"
-                    title="Withdraw Application"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {!['withdrawn', 'hired', 'rejected'].includes(app.status) && (
+                    <button
+                      onClick={() => handleWithdraw(app.id)}
+                      disabled={isDeletingId === app.id}
+                      className="p-2 rounded-xl text-ink-subtle hover:text-status-error hover:bg-rose-50 transition-colors"
+                      title="Withdraw Application"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
 
                   <Link to={`/jobs/${app.job}`}>
                     <Button variant="outline" size="sm">

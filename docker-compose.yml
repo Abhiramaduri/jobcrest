@@ -1,0 +1,113 @@
+services:
+  # ─────────────────────────────────────────────────────────
+  # NGINX LOAD BALANCER & REVERSE PROXY
+  # ─────────────────────────────────────────────────────────
+  load_balancer:
+    image: nginx:alpine
+    container_name: jobcrest_load_balancer
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend_1
+      - backend_2
+    networks:
+      - jobcrest_net
+
+  # ─────────────────────────────────────────────────────────
+  # BACKEND INSTANCE 1 (Django / Gunicorn Worker)
+  # ─────────────────────────────────────────────────────────
+  backend_1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jobcrest_backend_1
+    restart: unless-stopped
+    environment:
+      - DEBUG=False
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=jobcrest
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/1
+      - NUM_PROXIES=1
+      - USE_X_FORWARDED_HOST=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,load_balancer
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - jobcrest_net
+
+  # ─────────────────────────────────────────────────────────
+  # BACKEND INSTANCE 2 (Django / Gunicorn Worker - Load Balanced)
+  # ─────────────────────────────────────────────────────────
+  backend_2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jobcrest_backend_2
+    restart: unless-stopped
+    environment:
+      - DEBUG=False
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=jobcrest
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/1
+      - NUM_PROXIES=1
+      - USE_X_FORWARDED_HOST=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,load_balancer
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - jobcrest_net
+
+  # ─────────────────────────────────────────────────────────
+  # DISTRIBUTED CACHE & THROTTLE STORE (Redis)
+  # ─────────────────────────────────────────────────────────
+  redis:
+    image: redis:alpine
+    container_name: jobcrest_redis
+    restart: unless-stopped
+    networks:
+      - jobcrest_net
+
+  # ─────────────────────────────────────────────────────────
+  # DATABASE (PostgreSQL)
+  # ─────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: jobcrest_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jobcrest
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobcrest_net
+
+networks:
+  jobcrest_net:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -2,9 +2,11 @@ from django.db import models
 from django.utils.text import slugify
 from companies.models import Company, EmployerProfile
 from accounts.models import Skill
+import uuid
 
 
 class JobCategory(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, blank=True)
 
@@ -18,6 +20,7 @@ class JobCategory(models.Model):
 
 
 class Job(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     JOB_TYPE_CHOICE = (
         ('full-time', 'Full Time'),
         ('part-time', 'Part Time'),
@@ -66,6 +69,7 @@ class Job(models.Model):
 
 
 class SavedJob(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     jobseeker = models.ForeignKey('accounts.JobSeekerProfile', on_delete=models.CASCADE, related_name='saved_jobs')
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='saved_by')
     saved_at = models.DateTimeField(auto_now_add=True)

@@ -61,11 +61,24 @@ export const ApplyModal = ({ isOpen, onClose, job, onApplicationSuccess }) => {
 
       if (resumeMode === 'new') {
         if (!data.new_resume || data.new_resume.length === 0) {
-          toast.error('Please upload a PDF resume');
+          toast.error('Please upload a resume file (PDF, DOC, DOCX)');
           setIsSubmitting(false);
           return;
         }
-        formData.append('resume', data.new_resume[0]);
+        const file = data.new_resume[0];
+        const allowedExtensions = ['pdf', 'doc', 'docx'];
+        const fileExt = file.name?.split('.').pop()?.toLowerCase();
+        if (!fileExt || !allowedExtensions.includes(fileExt)) {
+          toast.error('Only PDF, DOC, and DOCX documents are permitted.');
+          setIsSubmitting(false);
+          return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('File size exceeds the 5MB limit.');
+          setIsSubmitting(false);
+          return;
+        }
+        formData.append('resume', file);
       }
 
       await applicationsApi.applyToJob(formData);
@@ -140,10 +153,10 @@ export const ApplyModal = ({ isOpen, onClose, job, onApplicationSuccess }) => {
               <Upload className="w-5 h-5 text-wine-deep" />
               <div className="flex flex-col text-xs">
                 <span className="font-semibold text-ink-charcoal">
-                  Upload tailored PDF resume
+                  Upload tailored resume
                 </span>
                 <span className="text-ink-subtle">
-                  Customized specifically for this vacancy (PDF only)
+                  Customized for this vacancy (PDF, DOC, DOCX up to 5MB)
                 </span>
               </div>
             </label>
@@ -152,9 +165,9 @@ export const ApplyModal = ({ isOpen, onClose, job, onApplicationSuccess }) => {
               <div className="mt-3 pl-7">
                 <input
                   type="file"
-                  accept=".pdf,application/pdf"
+                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   {...register('new_resume', {
-                    required: resumeMode === 'new' ? 'PDF resume is required' : false,
+                    required: resumeMode === 'new' ? 'Resume is required' : false,
                   })}
                   className="block w-full text-xs text-ink-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-wine-deep file:text-white hover:file:bg-wine-burgundy cursor-pointer"
                 />

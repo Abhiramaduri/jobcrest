@@ -3,6 +3,12 @@ services:
     name: jobcrest
     runtime: docker
     dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health/
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+      targetCPUPercent: 75
+      targetMemoryPercent: 75
     envVars:
       - key: SECRET_KEY
         sync: false
@@ -46,3 +52,27 @@ services:
         sync: false
       - key: DEFAULT_FROM_EMAIL
         value: "JobCrest <aduriabhiram1234@gmail.com>"
+      - key: USE_S3
+        value: "True"
+      - key: AWS_STORAGE_BUCKET_NAME
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        value: us-east-1
+      - key: AWS_S3_ENDPOINT_URL
+        sync: false
+      - key: NUM_PROXIES
+        value: "1"
+      - key: USE_X_FORWARDED_HOST
+        value: "True"
+      - key: THROTTLE_AUTH_LOGIN_RATE
+        value: 5/min
+      - key: THROTTLE_AUTH_REGISTER_RATE
+        value: 5/min
+      - key: THROTTLE_AUTH_PASSWORD_RESET_RATE
+        value: 3/min
+      - key: THROTTLE_AUTH_OTP_RATE
+        value: 5/min

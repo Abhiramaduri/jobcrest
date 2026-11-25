@@ -5,23 +5,28 @@ from accounts.serializers import SkillSerializer
 from companies.serializers import CompanyListSerializer
 
 class JobCategorySerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='uuid', read_only=True)
+
     class Meta:
         model = JobCategory
-        fields = ('id', 'name', 'slug')
-        read_only_fields = ('id', 'slug')
+        fields = ('id', 'uuid', 'name', 'slug')
+        read_only_fields = ('id', 'uuid', 'slug')
 
 class JobListSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='uuid', read_only=True)
     company = CompanyListSerializer(read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
 
     class Meta:
         model = Job
         fields = (
-            'id', 'title', 'slug', 'company', 'category_name', 'job_type',
+            'id', 'uuid', 'title', 'slug', 'company', 'category_name', 'job_type',
             'location', 'is_remote', 'salary_min', 'salary_max', 'salary_currency', 'status', 'created_at'
         )
+        read_only_fields = ('id', 'uuid')
 
 class JobDetailSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='uuid', read_only=True)
     company = CompanyListSerializer(read_only=True)
     category = JobCategorySerializer(read_only=True)
     skills_required = SkillSerializer(source='skill_required', many=True, read_only=True)
@@ -30,15 +35,16 @@ class JobDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
         fields = (
-            'id', 'title', 'slug', 'company', 'posted_by', 'posted_by_username', 'category', 'description', 'responsibilities', 'requirements',
+            'id', 'uuid', 'title', 'slug', 'company', 'posted_by', 'posted_by_username', 'category', 'description', 'responsibilities', 'requirements',
             'job_type', 'experience_min', 'experience_max', 'salary_min',
             'salary_max', 'salary_currency', 'location', 'is_remote',
             'skills_required', 'vacancies', 'status', 'application_deadline',
             'created_at', 'updated_at', 'views_count'
         )
-        read_only_fields = ('id', 'slug', 'posted_by', 'created_at', 'updated_at', 'views_count')
+        read_only_fields = ('id', 'uuid', 'slug', 'posted_by', 'created_at', 'updated_at', 'views_count')
 
 class JobWriterSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='uuid', read_only=True)
     skills_required = serializers.PrimaryKeyRelatedField(
         source='skill_required', many=True, queryset=Skill.objects.all(), required=False
     )
@@ -46,16 +52,17 @@ class JobWriterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
         fields = (
-            'id', 'title', 'company', 'category', 'description', 'responsibilities',
+            'id', 'uuid', 'title', 'company', 'category', 'description', 'responsibilities',
             'requirements', 'job_type', 'experience_min', 'experience_max', 'salary_min', 'salary_max', 'salary_currency',
             'location', 'is_remote', 'skills_required', 'vacancies', 'status', 'application_deadline',
         )
-        read_only_fields = ('id', 'company')
+        read_only_fields = ('id', 'uuid', 'company')
 
 class SavedJobSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='uuid', read_only=True)
     job = JobListSerializer(read_only=True)
 
     class Meta:
         model = SavedJob
-        fields = ('id', 'job', 'saved_at')
-        read_only_fields = ('id', 'saved_at')
+        fields = ('id', 'uuid', 'job', 'saved_at')
+        read_only_fields = ('id', 'uuid', 'saved_at')

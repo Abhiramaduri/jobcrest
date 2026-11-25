@@ -18,10 +18,19 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import HttpResponseForbidden
 from rest_framework_simplejwt.views import TokenRefreshView
+from accounts.views import health_check_view
+
+def protected_resume_media_view(request, path):
+    return HttpResponseForbidden("Direct access to resume media is prohibited. Use signed expiring links.")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/health/', health_check_view, name='health-check'),
+    path('healthz', health_check_view, name='healthz'),
+    path('media/resume/<path:path>', protected_resume_media_view),
+    path('media/application_resumes/<path:path>', protected_resume_media_view),
     path('api/', include('accounts.urls')), #APP
     path('api/', include('companies.urls')),
     path('api/', include('jobs.urls')),

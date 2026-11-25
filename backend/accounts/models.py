@@ -1,11 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 import random
+import uuid
 from django.utils import timezone
 from datetime import timedelta
+from .validators import validate_resume_file
 
 
 class User(AbstractUser):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     USER_TYPE_CHOICES = (
         ('jobseeker', 'Job Seeker'),
         ('employer', 'Employer'),
@@ -52,11 +55,12 @@ class OTPVerification(models.Model):
 
 
 class JobSeekerProfile(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='jobseeker_profile')
     full_name = models.CharField(max_length=255)
     headline = models.CharField(max_length=255, blank=True)
     bio = models.TextField(blank=True)
-    resume = models.FileField(upload_to='resume/', blank=True, null=True)
+    resume = models.FileField(upload_to='resume/', blank=True, null=True, validators=[validate_resume_file])
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     date_of_birth = models.DateField(blank=True, null=True)
     location = models.CharField(max_length=255, blank=True)
@@ -72,6 +76,7 @@ class JobSeekerProfile(models.Model):
 
 
 class Skill(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
@@ -79,6 +84,7 @@ class Skill(models.Model):
 
 
 class JobSeekerSkill(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     PROFICIENCY_CHOICES = (
         ('beginner', 'Beginner'),
         ('intermediate', 'Intermediate'),
@@ -96,6 +102,7 @@ class JobSeekerSkill(models.Model):
 
 
 class Education(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     jobseeker = models.ForeignKey(JobSeekerProfile, on_delete=models.CASCADE, related_name='education')
     degree = models.CharField(max_length=255)
     institution = models.CharField(max_length=255)
@@ -110,6 +117,7 @@ class Education(models.Model):
 
 
 class Experience(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     jobseeker = models.ForeignKey(JobSeekerProfile, on_delete=models.CASCADE, related_name='experience')
     company_name = models.CharField(max_length=255)
     role_title = models.CharField(max_length=255)
