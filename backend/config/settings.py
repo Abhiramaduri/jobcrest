@@ -257,11 +257,50 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
-# Email (Gmail SMTP via App Password)
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+# Email Configuration (Multi-provider: SMTP, SendGrid, Resend, or Console fallback)
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+EMAIL_PROVIDER = config('EMAIL_PROVIDER', default='smtp').strip().lower()
+SENDGRID_API_KEY = config('SENDGRID_API_KEY', default='')
+RESEND_API_KEY = config('RESEND_API_KEY', default='')
+
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='JobCrest <noreply@jobcrest.com>')
+SERVER_EMAIL = config('SERVER_EMAIL', default=DEFAULT_FROM_EMAIL)
+EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=10, cast=int)
+
+if EMAIL_PROVIDER == 'resend' or (RESEND_API_KEY and EMAIL_PROVIDER == 'smtp'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.resend.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = 'resend'
+    EMAIL_HOST_PASSWORD = RESEND_API_KEY or config('EMAIL_HOST_PASSWORD', default='')
+elif EMAIL_PROVIDER == 'sendgrid' or (SENDGRID_API_KEY and EMAIL_PROVIDER == 'smtp'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.sendgrid.net'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = 'apikey'
+    EMAIL_HOST_PASSWORD = SENDGRID_API_KEY or config('EMAIL_HOST_PASSWORD', default='')
+elif EMAIL_PROVIDER == 'console':
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+    EMAIL_PORT = config('EMAIL_PORT', default=25, cast=int)
+    EMAIL_USE_TLS = False
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = ''
+    EMAIL_HOST_PASSWORD = ''
+else:
+    EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+    EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+    EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+    _default_backend = (
+        'django.core.mail.backends.console.EmailBackend'
+        if (DEBUG and not EMAIL_HOST_PASSWORD)
+        else 'django.core.mail.backends.smtp.EmailBackend'
+    )
+    EMAIL_BACKEND = config('EMAIL_BACKEND', default=_default_backend)

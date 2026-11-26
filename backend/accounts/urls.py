@@ -8,6 +8,8 @@ urlpatterns = [
     # Auth
     path('auth/register/send-otp/', views.send_registration_otp_view, name='send-registration-otp'),
     path('auth/register/', views.register_view, name='register'),
+    path('auth/verify-email/send/', views.send_verification_email_view, name='send-verification-email'),
+    path('auth/verify-email/', views.verify_email_view, name='verify-email'),
     path('auth/login/', views.login_view, name='login'),
     path('auth/logout/', views.logout_view, name='logout'),
     path('auth/me', views.me_view, name='me'),

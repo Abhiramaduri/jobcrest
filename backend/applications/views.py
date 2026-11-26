@@ -16,6 +16,7 @@ from accounts.models import JobSeekerProfile
 from accounts.permissions import isJobSeeker, IsEmployer, IsJobSeeker
 from accounts.lookup import get_object_by_uuid_or_id
 from companies.models import EmployerProfile
+from notifications.emails import send_interview_invite_email
 
 #---------------------------- Apply to a job ----------------------------------------
 
@@ -211,7 +212,8 @@ def interview_create_view(request):
             changed_by=request.user,
             notes='Interview Scheduled.'
         )
-    
+
+    send_interview_invite_email(interview)
     return Response(InterviewSerializer(interview).data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET', 'PUT', 'PATCH'])
@@ -236,10 +238,22 @@ def interview_detail_view(request, pk):
             "detail": "Only the employer can update this interview."
         }, status=status.HTTP_403_FORBIDDEN)
         
+    old_scheduled_at = interview.scheduled_at
+    old_mode = interview.mode
+    old_link = interview.meeting_link
+
     partial = request.method == 'PATCH'
     serializer = InterviewSerializer(interview, data=request.data, partial=partial)
     serializer.is_valid(raise_exception=True)
-    serializer.save()
+    updated_interview = serializer.save()
+
+    if (
+        updated_interview.scheduled_at != old_scheduled_at
+        or updated_interview.mode != old_mode
+        or updated_interview.meeting_link != old_link
+    ):
+        send_interview_invite_email(updated_interview, rescheduled=True)
+
     return Response(serializer.data)
 
 @api_view(['GET'])

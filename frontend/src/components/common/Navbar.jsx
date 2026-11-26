@@ -18,6 +18,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import Button from './Button';
 import Badge from './Badge';
+import NotificationBell from './NotificationBell';
 
 export const Navbar = () => {
   const { user, role, isJobSeeker, isEmployer, isAuthenticated, logout } = useAuth();
@@ -137,11 +138,13 @@ export const Navbar = () => {
               </Button>
             </div>
           ) : (
-            <div className="relative">
-              <button
-                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-2.5 p-1.5 pl-2.5 rounded-xl border border-sand-border hover:border-wine-burgundy bg-white transition-all shadow-xs"
-              >
+            <div className="flex items-center gap-2.5">
+              <NotificationBell onOpen={() => setUserDropdownOpen(false)} />
+              <div className="relative">
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center gap-2.5 p-1.5 pl-2.5 rounded-xl border border-sand-border hover:border-wine-burgundy bg-white transition-all shadow-xs"
+                >
                 <div className="w-7 h-7 rounded-lg bg-wine-deep text-white font-bold text-xs flex items-center justify-center">
                   {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
                 </div>
@@ -226,12 +229,14 @@ export const Navbar = () => {
                   </div>
                 </>
               )}
+              </div>
             </div>
           )}
         </div>
 
         {/* Mobile menu button */}
         <div className="flex md:hidden items-center gap-2">
+          <NotificationBell onOpen={() => setMobileMenuOpen(false)} />
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 rounded-xl text-ink-charcoal hover:bg-sand-border/50"

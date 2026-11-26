@@ -26,6 +26,12 @@ from .throttles import (
     OTPRateThrottle, get_client_ip, is_account_locked, record_failed_attempt,
     clear_failed_attempts, LOCKOUT_THRESHOLD
 )
+from notifications.emails import (
+    send_otp_email_message,
+    send_verify_email,
+    send_welcome_email,
+    verify_email_token,
+)
 from rest_framework import status
 
 from .serializers import (
@@ -40,43 +46,7 @@ from .permissions import isJobSeeker
 # ─────────────────────────────────────────────────────────
 
 def send_otp_email(email, otp_code, purpose):
-    if purpose == 'registration':
-        subject = "🔐 Your JobCrest Email Verification OTP"
-        body = f"""Hello,
-
-Thank you for registering on JobCrest!
-
-Your One-Time Password (OTP) for email verification is:
-
-    ➤  {otp_code}
-
-This OTP is valid for 10 minutes. Do not share it with anyone.
-
-If you did not register on JobCrest, please ignore this email.
-
-— The JobCrest Team
-"""
-    else:
-        subject = "🔑 Your JobCrest Password Reset OTP"
-        body = f"""Hello,
-
-We received a request to reset your JobCrest account password.
-
-Your One-Time Password (OTP) is:
-
-    ➤  {otp_code}
-
-This OTP is valid for 10 minutes. If you did not request a password reset, please ignore this email.
-
-— The JobCrest Team
-"""
-    send_mail(
-        subject=subject,
-        message=body,
-        from_email=django_settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[email],
-        fail_silently=False,
-    )
+    send_otp_email_message(email=email, otp_code=otp_code, purpose=purpose, fail_silently=False)
 
 
 # ─────────────────────────────────────────────────────────
@@ -143,12 +113,59 @@ def register_view(request):
     otp_obj.is_used = True
     otp_obj.save()
 
+    send_welcome_email(user)
+
     refresh = RefreshToken.for_user(user)
     return Response({
         "user": UserSerilizer(user).data,
         "refresh": str(refresh),
         "access": str(refresh.access_token),
     }, status=status.HTTP_201_CREATED)
+
+
+# ─────────────────────────────────────────────────────────
+# VERIFY EMAIL (SIGNED LINK FLOW)
+# ─────────────────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([OTPRateThrottle])
+def send_verification_email_view(request):
+    user = request.user
+    if user.is_verified:
+        return Response({'detail': 'Email address is already verified.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not user.email:
+        return Response({'detail': 'No email address associated with this account.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    send_verify_email(user, request=request, fail_silently=True)
+    return Response({'detail': 'Verification email sent.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+@throttle_classes([OTPRateThrottle])
+def verify_email_view(request):
+    token = request.query_params.get('token') if request.method == 'GET' else request.data.get('token')
+    if not token:
+        return Response({'detail': 'Verification token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user_id, email = verify_email_token(token)
+    except SignatureExpired:
+        return Response({'detail': 'Verification link has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+    except (BadSignature, ValueError):
+        return Response({'detail': 'Invalid verification token.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(pk=user_id, email=email).first()
+    if not user:
+        return Response({'detail': 'User account not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not user.is_verified:
+        user.is_verified = True
+        user.save(update_fields=['is_verified'])
+        send_welcome_email(user)
+
+    return Response({'detail': 'Email verified successfully.'}, status=status.HTTP_200_OK)
 
 
 # ─────────────────────────────────────────────────────────
