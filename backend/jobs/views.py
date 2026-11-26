@@ -6,8 +6,9 @@ from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.filters import SearchFilter,OrderingFilter
 from rest_framework.settings import api_settings
 from django_filters.rest_framework import DjangoFilterBackend
+from django.core.cache import cache
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from django.db.models import F, Q
 from .models import JobCategory,JobCategory,Job,SavedJob
 from .filters import JobFilter
 from .serializers import(
@@ -15,6 +16,7 @@ from .serializers import(
 )
 from accounts.models import Skill,JobSeekerProfile
 from accounts.permissions import IsEmployer,isJobSeeker
+from accounts.throttles import get_client_ip
 from companies.models import EmployerProfile
 from accounts.serializers import SkillSerializer
 
@@ -81,14 +83,38 @@ def job_list_create_view(request):
 
     return Response(JobDetailSerializer(job).data,status=status.HTTP_201_CREATED)
 
+BOT_USER_AGENT_KEYWORDS = (
+    'bot', 'crawler', 'spider', 'slurp', 'scrapy', 'headlesschrome',
+    'phantomjs', 'lighthouse', 'curl/', 'wget/', 'python-requests',
+    'go-http-client', 'httpclient',
+)
+VIEW_DEDUPE_TTL_SECONDS = 3600
+
+
+def _should_count_job_view(request, job):
+    """Skip automated bots/crawlers and deduplicate repeated refreshes per user or IP."""
+    user_agent = (request.META.get('HTTP_USER_AGENT') or '').lower()
+    if user_agent and any(keyword in user_agent for keyword in BOT_USER_AGENT_KEYWORDS):
+        return False
+
+    if getattr(request, 'user', None) and request.user.is_authenticated:
+        viewer_ident = f"user:{request.user.pk}"
+    else:
+        viewer_ident = f"ip:{get_client_ip(request)}"
+
+    dedupe_key = f"job_view:{job.pk}:{viewer_ident}"
+    return cache.add(dedupe_key, True, timeout=VIEW_DEDUPE_TTL_SECONDS)
+
+
 @api_view(['GET','PUT','PATCH','DELETE'])
 @permission_classes([AllowAny])
 def job_detail_view(request,slug):
     job=get_object_or_404(Job,slug=slug)
 
     if request.method=='GET':
-        job.views_count +=1
-        job.save(update_fields=['views_count'])
+        if _should_count_job_view(request, job):
+            Job.objects.filter(pk=job.pk).update(views_count=F('views_count') + 1)
+            job.refresh_from_db(fields=['views_count'])
         return Response(JobDetailSerializer(job).data)
     if not request.user.is_authenticated:
         return Response({
@@ -99,8 +125,14 @@ def job_detail_view(request,slug):
             "detail":"You do not have permission to modify this job."
         },status=status.HTTP_403_FORBIDDEN)
     if request.method=='DELETE':
-        job.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if job.status == 'closed':
+            return Response(
+                {"detail": "Job posting is already closed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        job.status = 'closed'
+        job.save(update_fields=['status', 'updated_at'])
+        return Response(JobDetailSerializer(job).data, status=status.HTTP_200_OK)
 
     partial = request.method =='PATCH'
     serializer=JobWriterSerializer(job,data=request.data,partial=partial)

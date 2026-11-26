@@ -482,3 +482,38 @@ class AuthRateLimitingAndLockoutTests(TestCase):
         self.assertEqual(res_root.status_code, status.HTTP_200_OK)
         self.assertEqual(res_root.data.get("status"), "healthy")
 
+
+class LogoutTokenErrorTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="logout_user",
+            email="logout_user@example.com",
+            password="StrongPassword123!",
+            user_type="jobseeker",
+        )
+
+    def test_logout_with_valid_token_succeeds_and_blacklists(self):
+        """Valid refresh token returns 205 Reset Content and cannot be reused."""
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = str(RefreshToken.for_user(self.user))
+
+        self.client.force_authenticate(user=self.user)
+        res = self.client.post("/api/auth/logout/", {"refresh": refresh})
+        self.assertEqual(res.status_code, status.HTTP_205_RESET_CONTENT)
+
+        # Re-submitting blacklisted token returns 400 (not 500)
+        res_reuse = self.client.post("/api/auth/logout/", {"refresh": refresh})
+        self.assertEqual(res_reuse.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_logout_with_invalid_or_missing_token_returns_400_not_500(self):
+        """Missing or malformed refresh token returns HTTP 400 instead of 500."""
+        self.client.force_authenticate(user=self.user)
+
+        res_missing = self.client.post("/api/auth/logout/", {})
+        self.assertEqual(res_missing.status_code, status.HTTP_400_BAD_REQUEST)
+
+        res_bad = self.client.post("/api/auth/logout/", {"refresh": "not-a-valid-jwt-token"})
+        self.assertEqual(res_bad.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("invalid or expired", res_bad.data.get("detail", "").lower())
+

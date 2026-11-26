@@ -1,10 +1,12 @@
 from decimal import Decimal
+from django.core.cache import cache
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 
 from accounts.models import JobSeekerProfile, Skill
+from applications.models import Application
 from companies.models import Company, EmployerProfile
 from jobs.models import Job, JobCategory, SavedJob
 
@@ -227,11 +229,76 @@ class JobLifecycleAndPermissionsTests(TestCase):
         self.assertEqual(res_owner.data["title"], "Senior Backend Developer")
 
     def test_job_detail_increments_views_count(self):
+        cache.clear()
         initial_views = self.published_job.views_count
         res = self.client.get(f"/api/jobs/{self.published_job.slug}/")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.published_job.refresh_from_db()
         self.assertEqual(self.published_job.views_count, initial_views + 1)
+
+    def test_job_detail_dedupes_refreshes_and_ignores_bots(self):
+        """Atomic views_count skips bots/crawlers and deduplicates rapid refreshes per user/IP."""
+        cache.clear()
+        start_views = self.published_job.views_count
+
+        # Bot request should not increment
+        res_bot = self.client.get(
+            f"/api/jobs/{self.published_job.slug}/",
+            HTTP_USER_AGENT="Googlebot/2.1 (+http://www.google.com/bot.html)",
+            HTTP_X_FORWARDED_FOR="198.51.100.1",
+        )
+        self.assertEqual(res_bot.status_code, status.HTTP_200_OK)
+        self.published_job.refresh_from_db()
+        self.assertEqual(self.published_job.views_count, start_views)
+
+        # First human view from IP A increments by 1
+        res_human1 = self.client.get(
+            f"/api/jobs/{self.published_job.slug}/",
+            HTTP_USER_AGENT="Mozilla/5.0",
+            HTTP_X_FORWARDED_FOR="198.51.100.10",
+        )
+        self.assertEqual(res_human1.status_code, status.HTTP_200_OK)
+        self.published_job.refresh_from_db()
+        self.assertEqual(self.published_job.views_count, start_views + 1)
+
+        # Refresh from same IP A does NOT increment again
+        res_refresh = self.client.get(
+            f"/api/jobs/{self.published_job.slug}/",
+            HTTP_USER_AGENT="Mozilla/5.0",
+            HTTP_X_FORWARDED_FOR="198.51.100.10",
+        )
+        self.assertEqual(res_refresh.status_code, status.HTTP_200_OK)
+        self.published_job.refresh_from_db()
+        self.assertEqual(self.published_job.views_count, start_views + 1)
+
+        # Authenticated user view increments once and dedupes refreshes
+        self.client.force_authenticate(user=self.seeker_user)
+        self.client.get(f"/api/jobs/{self.published_job.slug}/", HTTP_USER_AGENT="Mozilla/5.0")
+        self.client.get(f"/api/jobs/{self.published_job.slug}/", HTTP_USER_AGENT="Mozilla/5.0")
+        self.published_job.refresh_from_db()
+        self.assertEqual(self.published_job.views_count, start_views + 2)
+
+    def test_job_delete_soft_closes_and_preserves_applications(self):
+        """DELETE /api/jobs/<slug>/ sets status='closed' instead of cascading/deleting applications."""
+        app = Application.objects.create(job=self.published_job, applicant=self.seeker_profile, status="applied")
+
+        self.client.force_authenticate(user=self.emp_user)
+        res_close = self.client.delete(f"/api/jobs/{self.published_job.slug}/")
+        self.assertEqual(res_close.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_close.data["status"], "closed")
+
+        # Job & application still exist in DB
+        self.published_job.refresh_from_db()
+        self.assertEqual(self.published_job.status, "closed")
+        self.assertTrue(Application.objects.filter(pk=app.pk).exists())
+
+        # Closed job excluded from public /api/jobs/ listing
+        res_list = self.client.get("/api/jobs/")
+        self.assertNotIn(self.published_job.slug, [j["slug"] for j in res_list.data["results"]])
+
+        # Closing an already closed job returns 400
+        res_again = self.client.delete(f"/api/jobs/{self.published_job.slug}/")
+        self.assertEqual(res_again.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_save_and_unsave_job_flow(self):
         self.client.force_authenticate(user=self.seeker_user)

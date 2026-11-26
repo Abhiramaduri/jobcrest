@@ -69,13 +69,13 @@ export const EmployerJobs = () => {
   };
 
   const handleDeleteJob = async (slug) => {
-    if (!window.confirm('Are you sure you want to delete this job posting? This cannot be undone.')) return;
+    if (!window.confirm('Are you sure you want to close this job posting? Existing applications and history will be preserved.')) return;
     try {
       await jobsApi.deleteJob(slug);
-      toast.success('Job posting deleted');
+      toast.success('Job posting closed');
       loadPostings();
-    } catch {
-      toast.error('Failed to delete job posting');
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'Failed to close job posting');
     }
   };
 
@@ -233,13 +233,15 @@ export const EmployerJobs = () => {
                   Review Pipeline
                 </Button>
 
-                <button
-                  onClick={() => handleDeleteJob(job.slug)}
-                  className="p-2 text-ink-subtle hover:text-status-error hover:bg-rose-50 rounded-xl transition-colors"
-                  title="Delete Posting"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {job.status !== 'closed' && (
+                  <button
+                    onClick={() => handleDeleteJob(job.slug)}
+                    className="p-2 text-ink-subtle hover:text-status-error hover:bg-rose-50 rounded-xl transition-colors"
+                    title="Close Posting"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           ))}

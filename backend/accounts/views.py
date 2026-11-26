@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -207,13 +208,18 @@ def login_view(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
+    refresh_token = request.data.get("refresh")
+    if not refresh_token or not isinstance(refresh_token, str):
+        return Response(
+            {"detail": "A valid refresh token is required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     try:
-        refresh_token = request.data["refresh"]
         token = RefreshToken(refresh_token)
         token.blacklist()
         return Response({"detail": "Logged out successfully"}, status=status.HTTP_205_RESET_CONTENT)
-    except Exception:
-        return Response({"detail": "Invalid or expired token"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except TokenError:
+        return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ─────────────────────────────────────────────────────────
